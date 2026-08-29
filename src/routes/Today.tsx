@@ -56,13 +56,13 @@ export function Today() {
       supabase
         .from('tasks')
         .select('id, title, due_date, completed_at')
-        .lte('due_date', weekEnd)
-        .order('due_date', { ascending: true }),
+        .or(`due_date.is.null,due_date.lte.${weekEnd}`)
+        .order('due_date', { ascending: true, nullsFirst: false }),
       supabase
         .from('reading_items')
         .select('id, title, due_date, course_id, courses(name, color)')
-        .lte('due_date', weekEnd)
-        .order('due_date', { ascending: true }),
+        .or(`due_date.is.null,due_date.lte.${weekEnd}`)
+        .order('due_date', { ascending: true, nullsFirst: false }),
       supabase
         .from('nudges')
         .select('id, message, item_type, from_user_id')
