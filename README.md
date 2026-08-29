@@ -5,11 +5,13 @@ other accountable. Built with React + Vite, Supabase (Postgres, Auth, Storage), 
 Netlify. Installable to the home screen on iPad/iPhone/Mac.
 
 **Status: MVP Phase 1** — auth, full database schema, responsive shell, Today (due tasks/readings,
-nudges, quick-add), Calendar (month/week/day, recurring events, Mine/Both overlay), and Courses
-(reading lists with per-user completion + class-prep/cold-call tracking) are done. Notes (Tiptap),
-the full Us screen, and push notifications are not yet built. A course's rich-text "outline" is
-deferred until Notes exists, since it'll likely just be a note attached to the course rather than
-a separate field.
+nudges, quick-add), Calendar (month/week/day, recurring events, Mine/Both overlay), Courses
+(reading lists with per-user completion + class-prep/cold-call tracking), and Notes (case briefs,
+Tiptap freeform notes with images via Supabase Storage, search, tag-by-course, private/shared) are
+done. The full Us screen and push notifications are not yet built. A course's rich-text "outline"
+from the original spec is still deferred — it's really just a freeform note attached to the
+course, so it doesn't need its own field now that Notes exists; wire it up as a fast-follow if it
+turns out to be missed.
 
 ## Stack
 

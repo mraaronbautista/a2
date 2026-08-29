@@ -6,6 +6,8 @@ import { Today } from './routes/Today'
 import { Calendar } from './routes/Calendar'
 import { Courses } from './routes/Courses'
 import { CourseDetail } from './routes/CourseDetail'
+import { Notes } from './routes/Notes'
+import { NoteDetail } from './routes/NoteDetail'
 import { Placeholder } from './routes/Placeholder'
 
 function App() {
@@ -30,7 +32,8 @@ function App() {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/courses/:courseId" element={<CourseDetail />} />
-        <Route path="/notes" element={<Placeholder title="Notes" />} />
+        <Route path="/notes" element={<Notes />} />
+        <Route path="/notes/:noteId" element={<NoteDetail />} />
         <Route path="/us" element={<Placeholder title="Us" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
