@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
+import { Logo } from '../Logo'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Today' },
@@ -20,7 +21,10 @@ export function AppShell() {
   return (
     <div className="flex min-h-svh flex-col bg-bg md:flex-row">
       <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-6 md:flex">
-        <span className="text-xl font-semibold text-navy">A²</span>
+        <div className="flex items-center gap-2">
+          <Logo size={28} className="rounded-lg" />
+          <span className="text-xl font-semibold text-navy">A²</span>
+        </div>
         <nav className="mt-8 flex flex-col gap-4 text-sm font-medium">
           {NAV_ITEMS.map((item) => (
             <NavLink

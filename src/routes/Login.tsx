@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { Logo } from '../components/Logo'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -28,7 +29,8 @@ export function Login() {
   return (
     <div className="flex min-h-svh items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-navy">A²</h1>
+        <Logo size={40} />
+        <h1 className="mt-3 text-2xl font-semibold text-navy">A²</h1>
         <p className="mt-1 text-sm text-ink-muted">Sign in with a magic link.</p>
 
         {status === 'sent' ? (
