@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useReducer, useRef } from 'react'
 import { EditorContent, useEditor, type JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Highlight from '@tiptap/extension-highlight'
@@ -16,19 +16,35 @@ interface RichTextEditorProps {
 const BUTTON_CLASS = 'rounded px-2 py-1 text-xs font-medium text-ink-muted hover:bg-bg hover:text-ink'
 const ACTIVE_CLASS = 'bg-accent-bg text-accent'
 
+const HIGHLIGHT_COLORS = ['#fde68a', '#bbf7d0', '#bfdbfe', '#fbcfe8']
+
+const BLOCK_TYPE_OPTIONS = [
+  { value: 'p', label: 'Body' },
+  { value: 'h1', label: 'Heading 1' },
+  { value: 'h2', label: 'Heading 2' },
+  { value: 'h3', label: 'Heading 3' },
+  { value: 'h4', label: 'Heading 4' },
+] as const
+
 export function RichTextEditor({ content, editable, userId, onChange }: RichTextEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Bold/Italic/Highlight/block-type active-states depend on the current
+  // selection, not just document content — onUpdate alone misses a plain
+  // cursor move (e.g. clicking into an existing heading) leaving the
+  // toolbar showing stale active-state until the next edit.
+  const [, forceRerender] = useReducer((c: number) => c + 1, 0)
 
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Highlight,
+      Highlight.configure({ multicolor: true }),
       Image,
       Placeholder.configure({ placeholder: 'Start writing…' }),
     ],
     content: content ?? '',
     editable,
     onUpdate: ({ editor }) => onChange(editor.getJSON()),
+    onTransaction: () => forceRerender(),
   })
 
   useEffect(() => {
@@ -48,12 +64,56 @@ export function RichTextEditor({ content, editable, userId, onChange }: RichText
     editor.chain().focus().setImage({ src: data.publicUrl }).run()
   }
 
+  function currentBlockType(): (typeof BLOCK_TYPE_OPTIONS)[number]['value'] {
+    if (!editor) return 'p'
+    for (const level of [1, 2, 3, 4] as const) {
+      if (editor.isActive('heading', { level })) return `h${level}` as 'h1' | 'h2' | 'h3' | 'h4'
+    }
+    return 'p'
+  }
+
+  function handleBlockTypeChange(value: string) {
+    if (!editor) return
+    if (value === 'p') {
+      editor.chain().focus().setParagraph().run()
+    } else {
+      editor
+        .chain()
+        .focus()
+        .toggleHeading({ level: Number(value[1]) as 1 | 2 | 3 | 4 })
+        .run()
+    }
+  }
+
+  function toggleHighlightColor(color: string) {
+    if (!editor) return
+    if (editor.isActive('highlight', { color })) {
+      editor.chain().focus().unsetHighlight().run()
+    } else {
+      editor.chain().focus().setHighlight({ color }).run()
+    }
+  }
+
   if (!editor) return null
 
   return (
     <div className={editable ? 'rounded-lg border border-border bg-bg' : ''}>
       {editable && (
-        <div className="flex flex-wrap gap-0.5 border-b border-border p-1.5">
+        <div className="flex flex-wrap items-center gap-1 border-b border-border p-1.5">
+          <select
+            value={currentBlockType()}
+            onChange={(e) => handleBlockTypeChange(e.target.value)}
+            className="rounded border border-border bg-surface px-1.5 py-1 text-xs text-ink outline-none focus:border-accent"
+          >
+            {BLOCK_TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+
+          <span className="mx-0.5 h-4 w-px bg-border" />
+
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -67,13 +127,6 @@ export function RichTextEditor({ content, editable, userId, onChange }: RichText
             className={[BUTTON_CLASS, editor.isActive('italic') ? ACTIVE_CLASS : ''].join(' ')}
           >
             Italic
-          </button>
-          <button
-            type="button"
-            onClick={() => editor.chain().focus().toggleHighlight().run()}
-            className={[BUTTON_CLASS, editor.isActive('highlight') ? ACTIVE_CLASS : ''].join(' ')}
-          >
-            Highlight
           </button>
           <button
             type="button"
@@ -93,12 +146,28 @@ export function RichTextEditor({ content, editable, userId, onChange }: RichText
             Image
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+
+          <span className="mx-0.5 h-4 w-px bg-border" />
+
+          <span className="text-xs text-ink-muted">Highlight</span>
+          <div className="flex gap-1">
+            {HIGHLIGHT_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => toggleHighlightColor(color)}
+                aria-label={`Highlight ${color}`}
+                className={[
+                  'h-5 w-5 rounded-full',
+                  editor.isActive('highlight', { color }) ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface' : '',
+                ].join(' ')}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
         </div>
       )}
-      <EditorContent
-        editor={editor}
-        className="prose-sm max-w-none px-3 py-2 text-sm text-ink [&_.ProseMirror]:min-h-32 [&_.ProseMirror]:outline-none [&_img]:max-w-full [&_img]:rounded-lg [&_mark]:rounded [&_mark]:bg-accent-bg [&_mark]:px-0.5 [&_p.is-editor-empty:first-child::before]:float-left [&_p.is-editor-empty:first-child::before]:h-0 [&_p.is-editor-empty:first-child::before]:text-ink-muted [&_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]"
-      />
+      <EditorContent editor={editor} className="tiptap-content px-3 py-2 text-sm text-ink" />
     </div>
   )
 }

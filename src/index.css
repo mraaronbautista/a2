@@ -39,3 +39,83 @@ body {
 #root {
   min-height: 100svh;
 }
+
+/* Tiptap editor content — plain CSS rather than Tailwind Typography (not
+   installed): list markers/indentation, heading sizes, and marks all need
+   real rules since Preflight strips list-style with nothing to replace it. */
+.tiptap-content .ProseMirror {
+  min-height: 8rem;
+  outline: none;
+}
+
+.tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--color-ink-muted);
+  pointer-events: none;
+}
+
+.tiptap-content ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.tiptap-content ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.tiptap-content li {
+  margin: 0.25rem 0;
+}
+
+.tiptap-content li p {
+  margin: 0;
+}
+
+.tiptap-content h1,
+.tiptap-content h2,
+.tiptap-content h3,
+.tiptap-content h4 {
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
+.tiptap-content h1 {
+  font-size: 1.5rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.tiptap-content h2 {
+  font-size: 1.25rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.tiptap-content h3 {
+  font-size: 1.1rem;
+  margin: 0.75rem 0 0.4rem;
+}
+
+.tiptap-content h4 {
+  font-size: 1rem;
+  margin: 0.75rem 0 0.4rem;
+}
+
+.tiptap-content img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* Fixed dark text rather than inherit — highlight backgrounds are pastel
+   regardless of app theme, so light (dark-mode) ink text would be
+   unreadable against them without this, same as a physical highlighter
+   always sitting under dark ink. */
+.tiptap-content mark {
+  border-radius: 0.2rem;
+  padding: 0 0.15rem;
+  background: var(--color-accent-bg);
+  color: #1b2436;
+}
