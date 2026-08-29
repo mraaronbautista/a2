@@ -12,7 +12,7 @@ the full Us screen, and push notifications are not yet built.
 
 - React + TypeScript + Vite, React Router, Tailwind CSS
 - Supabase (Postgres + Auth + Storage), Row Level Security on every table
-- Supabase email magic-link auth (no OAuth)
+- Supabase email/password auth, two fixed accounts (no sign-up flow, no OAuth)
 - Netlify hosting
 
 ## One-time setup
@@ -28,16 +28,20 @@ the full Us screen, and push notifications are not yet built.
 3. **Run the migration** — open the SQL Editor in your Supabase project and paste in the contents
    of `supabase/migrations/0001_init.sql` (or `supabase db push` if you have the CLI linked with
    `supabase link --project-ref <ref>`).
-4. Install dependencies and run the dev server:
+4. **Create the two accounts** — Supabase Auth identifies users by email, so the app maps each
+   `Username` field to `<username>@a2.local` under the hood. In Supabase Dashboard →
+   Authentication → Users → Add user, create one user per partner with that synthetic email and
+   the chosen password, checking **Auto Confirm User** each time (otherwise sign-in fails with
+   "email not confirmed").
+5. Install dependencies and run the dev server:
 
    ```bash
    npm install
    npm run dev
    ```
 
-5. **Seed the household** — since this app is scoped to exactly two people, once both partners
-   have signed in at least once via magic link (which auto-creates their `profiles` row), run this
-   once in the SQL Editor, filling in both `auth.users` emails:
+6. **Seed the household** — since this app is scoped to exactly two people, once both accounts
+   exist (their `profiles` row is auto-created on first sign-in), run this once in the SQL Editor:
 
    ```sql
    with new_household as (
@@ -46,7 +50,7 @@ the full Us screen, and push notifications are not yet built.
    insert into household_members (household_id, user_id, role)
    select new_household.id, u.id, 'member'
    from new_household, auth.users u
-   where u.email in ('partner1@example.com', 'partner2@example.com');
+   where u.email in ('attyaaron@a2.local', 'attyalexs@a2.local');
    ```
 
 ## Deploying
