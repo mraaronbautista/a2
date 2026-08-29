@@ -3,6 +3,7 @@ import { useAuth } from './hooks/useAuth'
 import { AppShell } from './components/layout/AppShell'
 import { Login } from './routes/Login'
 import { Today } from './routes/Today'
+import { Calendar } from './routes/Calendar'
 import { Placeholder } from './routes/Placeholder'
 
 function App() {
@@ -24,7 +25,7 @@ function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<Today />} />
-        <Route path="/calendar" element={<Placeholder title="Calendar" />} />
+        <Route path="/calendar" element={<Calendar />} />
         <Route path="/courses" element={<Placeholder title="Courses" />} />
         <Route path="/notes" element={<Placeholder title="Notes" />} />
         <Route path="/us" element={<Placeholder title="Us" />} />
