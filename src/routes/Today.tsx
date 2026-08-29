@@ -79,13 +79,14 @@ export function Today() {
     if (readingItems.length > 0) {
       const { data: statusRows } = await supabase
         .from('reading_status')
-        .select('reading_item_id')
+        .select('reading_item_id, completed_at')
         .eq('user_id', user.id)
         .in(
           'reading_item_id',
           readingItems.map((r) => r.id),
         )
-      setReadingDone(new Set((statusRows ?? []).map((r: { reading_item_id: string }) => r.reading_item_id)))
+      const done = (statusRows ?? []) as { reading_item_id: string; completed_at: string | null }[]
+      setReadingDone(new Set(done.filter((r) => r.completed_at).map((r) => r.reading_item_id)))
     } else {
       setReadingDone(new Set())
     }
@@ -120,13 +121,9 @@ export function Today() {
       return next
     })
 
-    if (isDone) {
-      await supabase.from('reading_status').delete().eq('reading_item_id', readingId).eq('user_id', user.id)
-    } else {
-      await supabase
-        .from('reading_status')
-        .upsert({ reading_item_id: readingId, user_id: user.id, completed_at: new Date().toISOString() })
-    }
+    await supabase
+      .from('reading_status')
+      .upsert({ reading_item_id: readingId, user_id: user.id, completed_at: isDone ? null : new Date().toISOString() })
   }
 
   if (householdLoading || loading) {

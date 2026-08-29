@@ -4,9 +4,12 @@ A shared PWA for two law students to manage courses, readings, tasks, and notes,
 other accountable. Built with React + Vite, Supabase (Postgres, Auth, Storage), and deployed on
 Netlify. Installable to the home screen on iPad/iPhone/Mac.
 
-**Status: MVP Phase 1** — auth, full database schema, responsive shell, and the Today screen
-(due tasks/readings, nudges, quick-add) are done. Calendar, full Courses UI, Notes (Tiptap),
-the full Us screen, and push notifications are not yet built.
+**Status: MVP Phase 1** — auth, full database schema, responsive shell, Today (due tasks/readings,
+nudges, quick-add), Calendar (month/week/day, recurring events, Mine/Both overlay), and Courses
+(reading lists with per-user completion + class-prep/cold-call tracking) are done. Notes (Tiptap),
+the full Us screen, and push notifications are not yet built. A course's rich-text "outline" is
+deferred until Notes exists, since it'll likely just be a note attached to the course rather than
+a separate field.
 
 ## Stack
 
@@ -25,9 +28,9 @@ the full Us screen, and push notifications are not yet built.
    cp .env.example .env
    ```
 
-3. **Run the migration** — open the SQL Editor in your Supabase project and paste in the contents
-   of `supabase/migrations/0001_init.sql` (or `supabase db push` if you have the CLI linked with
-   `supabase link --project-ref <ref>`).
+3. **Run the migrations** — open the SQL Editor in your Supabase project and paste in the contents
+   of each file in `supabase/migrations/`, in order (or `supabase db push` if you have the CLI
+   linked with `supabase link --project-ref <ref>`).
 4. **Create the two accounts** — Supabase Auth identifies users by email, so the app maps each
    `Username` field to `<username>@a2.local` under the hood. In Supabase Dashboard →
    Authentication → Users → Add user, create one user per partner with that synthetic email and
