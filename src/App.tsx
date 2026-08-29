@@ -8,7 +8,7 @@ import { Courses } from './routes/Courses'
 import { CourseDetail } from './routes/CourseDetail'
 import { Notes } from './routes/Notes'
 import { NoteDetail } from './routes/NoteDetail'
-import { Placeholder } from './routes/Placeholder'
+import { Us } from './routes/Us'
 
 function App() {
   const { session, loading } = useAuth()
@@ -34,7 +34,7 @@ function App() {
         <Route path="/courses/:courseId" element={<CourseDetail />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/notes/:noteId" element={<NoteDetail />} />
-        <Route path="/us" element={<Placeholder title="Us" />} />
+        <Route path="/us" element={<Us />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
