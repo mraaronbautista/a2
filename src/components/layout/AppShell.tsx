@@ -4,7 +4,6 @@ import { Logo } from '../Logo'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Today' },
-  { to: '/calendar', label: 'Calendar' },
   { to: '/courses', label: 'Courses' },
   { to: '/notes', label: 'Notes' },
   { to: '/us', label: 'Us' },

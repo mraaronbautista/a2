@@ -1,18 +1,18 @@
 import { isSameDay } from 'date-fns'
-import type { EventOccurrence } from './types'
+import type { AgendaItem } from './types'
 import { DayEventList } from './DayEventList'
 
 interface DayViewProps {
   anchorDate: Date
-  occurrences: EventOccurrence[]
-  ownerLabel: (occurrence: EventOccurrence) => string | undefined
+  items: AgendaItem[]
+  ownerLabel: (item: AgendaItem) => string | undefined
 }
 
-export function DayView({ anchorDate, occurrences, ownerLabel }: DayViewProps) {
+export function DayView({ anchorDate, items, ownerLabel }: DayViewProps) {
   return (
     <DayEventList
       date={anchorDate}
-      occurrences={occurrences.filter((o) => isSameDay(o.start, anchorDate))}
+      items={items.filter((i) => isSameDay(i.start, anchorDate))}
       ownerLabel={ownerLabel}
       headingFormat="EEEE, MMMM d"
     />

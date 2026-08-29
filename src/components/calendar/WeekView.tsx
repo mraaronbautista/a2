@@ -1,14 +1,14 @@
 import { eachDayOfInterval, endOfWeek, isSameDay, startOfWeek } from 'date-fns'
-import type { EventOccurrence } from './types'
+import type { AgendaItem } from './types'
 import { DayEventList } from './DayEventList'
 
 interface WeekViewProps {
   anchorDate: Date
-  occurrences: EventOccurrence[]
-  ownerLabel: (occurrence: EventOccurrence) => string | undefined
+  items: AgendaItem[]
+  ownerLabel: (item: AgendaItem) => string | undefined
 }
 
-export function WeekView({ anchorDate, occurrences, ownerLabel }: WeekViewProps) {
+export function WeekView({ anchorDate, items, ownerLabel }: WeekViewProps) {
   const days = eachDayOfInterval({
     start: startOfWeek(anchorDate, { weekStartsOn: 0 }),
     end: endOfWeek(anchorDate, { weekStartsOn: 0 }),
@@ -20,7 +20,7 @@ export function WeekView({ anchorDate, occurrences, ownerLabel }: WeekViewProps)
         <DayEventList
           key={day.toISOString()}
           date={day}
-          occurrences={occurrences.filter((o) => isSameDay(o.start, day))}
+          items={items.filter((i) => isSameDay(i.start, day))}
           ownerLabel={ownerLabel}
         />
       ))}

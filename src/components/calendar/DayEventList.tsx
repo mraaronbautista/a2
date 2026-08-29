@@ -1,16 +1,16 @@
 import { format, isToday } from 'date-fns'
-import type { EventOccurrence } from './types'
+import type { AgendaItem } from './types'
 import { EventChip } from './EventChip'
 
 interface DayEventListProps {
   date: Date
-  occurrences: EventOccurrence[]
-  ownerLabel: (occurrence: EventOccurrence) => string | undefined
+  items: AgendaItem[]
+  ownerLabel: (item: AgendaItem) => string | undefined
   headingFormat?: string
 }
 
-export function DayEventList({ date, occurrences, ownerLabel, headingFormat = 'EEEE, MMM d' }: DayEventListProps) {
-  const sorted = [...occurrences].sort((a, b) => a.start.getTime() - b.start.getTime())
+export function DayEventList({ date, items, ownerLabel, headingFormat = 'EEEE, MMM d' }: DayEventListProps) {
+  const sorted = [...items].sort((a, b) => a.start.getTime() - b.start.getTime())
 
   return (
     <div>
@@ -21,7 +21,7 @@ export function DayEventList({ date, occurrences, ownerLabel, headingFormat = 'E
         {sorted.length === 0 ? (
           <p className="text-sm text-ink-muted">Nothing scheduled.</p>
         ) : (
-          sorted.map((o) => <EventChip key={o.key} occurrence={o} ownerLabel={ownerLabel(o)} />)
+          sorted.map((item) => <EventChip key={item.key} item={item} ownerLabel={ownerLabel(item)} showCheckbox />)
         )}
       </div>
     </div>

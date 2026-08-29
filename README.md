@@ -4,19 +4,18 @@ A shared PWA for two law students to manage courses, readings, tasks, and notes,
 other accountable. Built with React + Vite, Supabase (Postgres, Auth, Storage), and deployed on
 Netlify. Installable to the home screen on iPad/iPhone/Mac.
 
-**Status: MVP Phase 1 complete**, now iterating post-launch. Auth, full database schema, responsive
-shell, Today (due tasks/readings, nudges, quick-add), Calendar (month/week/day, recurring events,
-Mine/Both overlay), Courses (reading lists with per-user completion + class-prep/cold-call
-tracking), Notes (case briefs; Tiptap freeform notes with headings, multicolor highlight, working
-lists, and images via Supabase Storage; search; tag-by-course; private/shared), and Us (nudge
-picker with two-way on-it/later/done reactions and an activity log, plus a Thoughts inbox for
-unstructured shared notes with comment threads and one-tap promotion into a task) are all done.
-Only push notifications remain from the original spec. A course's rich-text "outline" is still
-deferred — it's really just a freeform note attached to the course, so it doesn't need its own
-field now that Notes exists; wire it up as a fast-follow if it turns out to be missed.
-
-Today and Calendar are being merged into one screen (Day/Week/Month as an internal view toggle
-rather than separate nav items) — in progress.
+**Status: MVP Phase 1 complete**, now iterating post-launch. Auth, full database schema, and a
+responsive shell are done. Nav is four screens: **Today** (merged with Calendar — Day/Week/Month
+as an internal view toggle rather than separate nav items, with a due tasks/readings agenda,
+recurring events, a 7-day DateStrip, Mine/Both overlay, and one quick-add for either a task or an
+event), **Courses** (reading lists with per-user completion + class-prep/cold-call tracking),
+**Notes** (case briefs; Tiptap freeform notes with headings, multicolor highlight, working lists,
+and images via Supabase Storage; search; tag-by-course; private/shared), and **Us** (a Nudges/
+Thoughts sub-view toggle — nudges keep their two-way on-it/later/done reactions and activity log;
+Thoughts is an inbox for unstructured shared notes with comment threads and one-tap promotion into
+a task). Only push notifications remain from the original spec. A course's rich-text "outline" is
+still deferred — it's really just a freeform note attached to the course, so it doesn't need its
+own field now that Notes exists; wire it up as a fast-follow if it turns out to be missed.
 
 ## Stack
 

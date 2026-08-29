@@ -1,5 +1,8 @@
-export interface EventOccurrence {
+export type AgendaItemKind = 'event' | 'task' | 'reading'
+
+export interface AgendaItem {
   key: string
+  kind: AgendaItemKind
   eventId: string
   title: string
   start: Date
@@ -7,4 +10,7 @@ export interface EventOccurrence {
   color: string
   ownerId: string
   courseName: string | null
+  /** Only for kind 'task' | 'reading' — calendar events aren't checkable. */
+  completed?: boolean
+  onToggle?: () => void
 }

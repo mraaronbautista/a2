@@ -3,7 +3,6 @@ import { useAuth } from './hooks/useAuth'
 import { AppShell } from './components/layout/AppShell'
 import { Login } from './routes/Login'
 import { Today } from './routes/Today'
-import { Calendar } from './routes/Calendar'
 import { Courses } from './routes/Courses'
 import { CourseDetail } from './routes/CourseDetail'
 import { Notes } from './routes/Notes'
@@ -29,7 +28,6 @@ function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<Today />} />
-        <Route path="/calendar" element={<Calendar />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/courses/:courseId" element={<CourseDetail />} />
         <Route path="/notes" element={<Notes />} />
