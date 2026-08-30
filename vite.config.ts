@@ -9,6 +9,16 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Push needs custom service-worker logic (push/notificationclick
+      // handlers) that generateSW's auto-authored worker has no hook for —
+      // injectManifest lets src/sw.ts own the whole file, with the
+      // precache manifest spliced in at build time.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+      },
       manifest: {
         name: 'A²',
         short_name: 'A²',

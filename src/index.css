@@ -43,8 +43,18 @@
   --color-accent-bg: #33251d;
 }
 
+html {
+  /* Any single element even a few px wider than the viewport (a stray
+     min-width, an unwrapped flex row) forces mobile Safari/Chrome to zoom
+     the whole page out to fit it, rather than just that one element
+     overflowing — this is the actual fix for "I'm always zoomed out on
+     mobile", not the viewport meta tag (which was already correct). */
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
+  overflow-x: hidden;
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);

@@ -268,7 +268,7 @@ export function Today() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-6 pb-24">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-navy">Today</h1>
+        <h1 className="text-2xl font-semibold text-navy">{format(new Date(), 'EEEE, MMMM d')}</h1>
         <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
           {(['Mine', 'Both'] as const).map((label) => (
             <button

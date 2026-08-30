@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../hooks/useAuth'
 import { useProfiles } from '../../hooks/useProfiles'
+import { getPushSubscription, isIos, isStandalone, pushSupported, subscribeToPush, unsubscribeFromPush } from '../../lib/push'
 import { HowToGuide } from './HowToGuide'
 
 interface SettingsMenuProps {
@@ -16,8 +17,40 @@ export function SettingsMenu({ theme, toggleTheme, onClose }: SettingsMenuProps)
   const { user } = useAuth()
   const profiles = useProfiles()
   const [guideOpen, setGuideOpen] = useState(false)
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushError, setPushError] = useState('')
 
   const displayName = user ? (profiles[user.id] ?? user.email?.split('@')[0]) : null
+  // iOS Safari can only receive push once installed to the Home Screen —
+  // a platform limit, not fixable here, so this shows install guidance
+  // instead of a toggle that would just silently fail.
+  const needsHomeScreenInstall = isIos() && !isStandalone()
+  const showPushToggle = pushSupported() && !needsHomeScreenInstall
+
+  useEffect(() => {
+    if (!showPushToggle) return
+    getPushSubscription().then((sub) => setPushEnabled(!!sub))
+  }, [showPushToggle])
+
+  async function handleTogglePush() {
+    if (!user) return
+    setPushBusy(true)
+    setPushError('')
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush()
+        setPushEnabled(false)
+      } else {
+        await subscribeToPush(user.id)
+        setPushEnabled(true)
+      }
+    } catch {
+      setPushError(pushEnabled ? "Couldn't turn off notifications." : 'Notifications were blocked — check your browser/device settings.')
+    } finally {
+      setPushBusy(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/30 md:items-center" onClick={onClose}>
@@ -32,10 +65,20 @@ export function SettingsMenu({ theme, toggleTheme, onClose }: SettingsMenuProps)
         {displayName && <p className="mt-1 text-xs text-ink-muted">Signed in as {displayName}</p>}
 
         <div className="mt-4 space-y-1">
-          <div className={[ITEM_CLASS, 'cursor-default text-ink-muted hover:bg-transparent'].join(' ')}>
-            Notifications
-            <span className="text-xs">Coming soon</span>
-          </div>
+          {showPushToggle ? (
+            <button type="button" onClick={handleTogglePush} disabled={pushBusy} className={ITEM_CLASS}>
+              Notifications
+              <span className="text-xs text-ink-muted">{pushBusy ? '…' : pushEnabled ? 'On' : 'Off'}</span>
+            </button>
+          ) : (
+            <div className={[ITEM_CLASS, 'cursor-default text-ink-muted hover:bg-transparent'].join(' ')}>
+              Notifications
+              <span className="text-xs">
+                {needsHomeScreenInstall ? 'Add to Home Screen first' : pushSupported() ? 'Off' : 'Not supported'}
+              </span>
+            </div>
+          )}
+          {pushError && <p className="px-3 text-xs text-accent">{pushError}</p>}
 
           <button type="button" onClick={toggleTheme} className={ITEM_CLASS}>
             Appearance
