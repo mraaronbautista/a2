@@ -18,14 +18,14 @@ import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
 import { useSettings } from '../hooks/useSettings'
-import { SettingsIcon } from '../components/layout/icons'
+import { ChevronDownIcon, SettingsIcon } from '../components/layout/icons'
 import { expandOccurrences } from '../lib/recurrence'
 import type { AgendaItem } from '../components/calendar/types'
 import { MonthView } from '../components/calendar/MonthView'
 import { WeekView } from '../components/calendar/WeekView'
 import { DayView } from '../components/calendar/DayView'
 import { DateStrip } from '../components/calendar/DateStrip'
-import { QuickAddButton } from '../components/agenda/QuickAddButton'
+import { MonthYearPicker } from '../components/calendar/MonthYearPicker'
 import { TaskDetailModal } from '../components/agenda/TaskDetailModal'
 import { EventDetailModal } from '../components/agenda/EventDetailModal'
 import { TaskItem } from '../components/tasks/TaskItem'
@@ -116,6 +116,7 @@ export function Today() {
   const [loading, setLoading] = useState(true)
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
   const [openEventId, setOpenEventId] = useState<string | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const load = useCallback(async () => {
     if (!user || !householdId) return
@@ -157,6 +158,14 @@ export function Today() {
 
   useEffect(() => {
     load()
+  }, [load])
+
+  // The quick-add button now lives in the global nav (AppShell) instead of
+  // this page, since it opens from every screen — it announces new items
+  // this way rather than through a prop callback.
+  useEffect(() => {
+    window.addEventListener('a2:item-added', load)
+    return () => window.removeEventListener('a2:item-added', load)
   }, [load])
 
   const toggleTask = useCallback(async (task: RawTask) => {
@@ -282,7 +291,13 @@ export function Today() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-6 pb-24">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 truncate text-2xl font-semibold text-navy">{periodLabel}</h1>
+        <button
+          onClick={() => setPickerOpen(true)}
+          className="flex min-w-0 items-center gap-0.5 text-left text-xl font-semibold text-navy sm:text-2xl"
+        >
+          <span className="truncate">{periodLabel}</span>
+          <ChevronDownIcon className="h-4 w-4 shrink-0 text-ink-muted" />
+        </button>
         <button
           onClick={openSettings}
           aria-label="Settings"
@@ -291,6 +306,18 @@ export function Today() {
           <SettingsIcon className="h-5 w-5" />
         </button>
       </div>
+
+      {pickerOpen && (
+        <MonthYearPicker
+          anchorDate={anchorDate}
+          onSelect={(date) => {
+            setAnchorDate(date)
+            setView('month')
+            setPickerOpen(false)
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
@@ -396,17 +423,6 @@ export function Today() {
       )}
       {view === 'week' && <WeekView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />}
       {view === 'day' && <DayView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />}
-
-      {user && (
-        <QuickAddButton
-          key={anchorDate.toDateString()}
-          householdId={householdId}
-          userId={user.id}
-          courses={courses}
-          defaultDate={anchorDate}
-          onAdded={load}
-        />
-      )}
 
       {openTaskId && user && (
         <TaskDetailModal

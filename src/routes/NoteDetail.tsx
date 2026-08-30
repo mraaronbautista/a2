@@ -129,7 +129,7 @@ export function NoteDetail() {
   async function handleDelete() {
     if (!note || !window.confirm(`Delete "${note.title || 'this note'}"?`)) return
     await supabase.from('notes').delete().eq('id', note.id)
-    navigate('/notes')
+    navigate('/us')
   }
 
   if (loading) {
@@ -144,8 +144,8 @@ export function NoteDetail() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6 pb-16">
-      <Link to="/notes" className="text-sm text-ink-muted hover:text-ink">
-        ← Notes
+      <Link to="/us" className="text-sm text-ink-muted hover:text-ink">
+        ← Us
       </Link>
 
       <div className="flex items-start justify-between gap-3">

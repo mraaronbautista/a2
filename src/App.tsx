@@ -5,7 +5,6 @@ import { Login } from './routes/Login'
 import { Today } from './routes/Today'
 import { Courses } from './routes/Courses'
 import { CourseDetail } from './routes/CourseDetail'
-import { Notes } from './routes/Notes'
 import { NoteDetail } from './routes/NoteDetail'
 import { Us } from './routes/Us'
 
@@ -30,7 +29,7 @@ function App() {
         <Route path="/" element={<Today />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/courses/:courseId" element={<CourseDetail />} />
-        <Route path="/notes" element={<Notes />} />
+        <Route path="/notes" element={<Navigate to="/us" replace />} />
         <Route path="/notes/:noteId" element={<NoteDetail />} />
         <Route path="/us" element={<Us />} />
         <Route path="*" element={<Navigate to="/" replace />} />

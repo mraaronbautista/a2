@@ -23,15 +23,6 @@ export function CoursesIcon({ className }: IconProps) {
   )
 }
 
-export function NotesIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
-      <rect x="5" y="3" width="14" height="18" rx="2" />
-      <path d="M8 8h8M8 12h8M8 16h5" />
-    </svg>
-  )
-}
-
 export function UsIcon({ className }: IconProps) {
   // Hand-built symmetric about x=12 (each control point mirrored exactly,
   // 24-x), rather than eyeballed coordinates — those read as visibly
@@ -56,6 +47,14 @@ export function SettingsIcon({ className }: IconProps) {
       {GEAR_TOOTH_ANGLES.map((angle) => (
         <rect key={angle} x="10.85" y="1.6" width="2.3" height="3" rx="0.7" transform={`rotate(${angle} 12 12)`} />
       ))}
+    </svg>
+  )
+}
+
+export function ChevronDownIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
+      <path d="M6 9l6 6 6-6" />
     </svg>
   )
 }
