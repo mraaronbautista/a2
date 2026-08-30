@@ -17,6 +17,8 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
+import { useSettings } from '../hooks/useSettings'
+import { SettingsIcon } from '../components/layout/icons'
 import { expandOccurrences } from '../lib/recurrence'
 import type { AgendaItem } from '../components/calendar/types'
 import { MonthView } from '../components/calendar/MonthView'
@@ -95,6 +97,7 @@ export function Today() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
   const profiles = useProfiles()
+  const { openSettings } = useSettings()
 
   const [view, setView] = useState<ViewMode>('day')
   const [anchorDate, setAnchorDate] = useState(() => startOfDay(new Date()))
@@ -268,54 +271,63 @@ export function Today() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-6 pb-24">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-navy">{format(new Date(), 'EEEE, MMMM d')}</h1>
-        <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
-          {(['Mine', 'Both'] as const).map((label) => (
-            <button
-              key={label}
-              onClick={() => setMineOnly(label === 'Mine')}
-              className={[
-                'rounded-full px-3 py-1 font-medium',
-                (label === 'Mine') === mineOnly ? 'bg-accent-bg text-accent' : 'text-ink-muted',
-              ].join(' ')}
-            >
-              {label}
-            </button>
-          ))}
+        <h1 className="text-2xl font-semibold text-navy">{format(new Date(), 'EEEE, MMMM d, yyyy')}</h1>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
+            {(['Mine', 'Both'] as const).map((label) => (
+              <button
+                key={label}
+                onClick={() => setMineOnly(label === 'Mine')}
+                className={[
+                  'rounded-full px-3 py-1 font-medium',
+                  (label === 'Mine') === mineOnly ? 'bg-accent-bg text-accent' : 'text-ink-muted',
+                ].join(' ')}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={openSettings}
+            aria-label="Settings"
+            className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden"
+          >
+            <SettingsIcon className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
           <button
             onClick={() => setAnchorDate(shiftAnchor(view, anchorDate, -1))}
-            className="rounded-lg border border-border px-2 py-1 text-sm text-ink-muted hover:text-ink"
+            className="shrink-0 rounded-lg border border-border px-2 py-1 text-sm text-ink-muted hover:text-ink"
             aria-label="Previous"
           >
             ‹
           </button>
           <button
             onClick={() => setAnchorDate(startOfDay(new Date()))}
-            className="rounded-lg border border-border px-3 py-1 text-sm text-ink-muted hover:text-ink"
+            className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-sm text-ink-muted hover:text-ink sm:px-3"
           >
             Today
           </button>
           <button
             onClick={() => setAnchorDate(shiftAnchor(view, anchorDate, 1))}
-            className="rounded-lg border border-border px-2 py-1 text-sm text-ink-muted hover:text-ink"
+            className="shrink-0 rounded-lg border border-border px-2 py-1 text-sm text-ink-muted hover:text-ink"
             aria-label="Next"
           >
             ›
           </button>
-          <span className="ml-1 text-sm font-medium text-ink">{periodLabel}</span>
+          <span className="ml-1 hidden truncate text-sm font-medium text-ink sm:inline">{periodLabel}</span>
         </div>
 
-        <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
+        <div className="flex shrink-0 gap-1 rounded-full bg-surface p-1 text-xs">
           {(['day', 'week', 'month'] as const).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={['rounded-full px-3 py-1 font-medium capitalize', v === view ? 'bg-accent-bg text-accent' : 'text-ink-muted'].join(
+              className={['rounded-full px-2.5 py-1 font-medium capitalize sm:px-3', v === view ? 'bg-accent-bg text-accent' : 'text-ink-muted'].join(
                 ' ',
               )}
             >

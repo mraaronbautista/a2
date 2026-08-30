@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
 import { CourseCard } from '../components/courses/CourseCard'
 import { AddCourseButton } from '../components/courses/AddCourseButton'
+import { useSettings } from '../hooks/useSettings'
+import { SettingsIcon } from '../components/layout/icons'
 
 interface Course {
   id: string
@@ -16,6 +18,7 @@ interface Course {
 export function Courses() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
+  const { openSettings } = useSettings()
   const [courses, setCourses] = useState<Course[]>([])
   const [readingCounts, setReadingCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
@@ -51,7 +54,12 @@ export function Courses() {
     <div className="mx-auto max-w-2xl space-y-4 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Courses</h1>
-        {householdId && user && <AddCourseButton householdId={householdId} userId={user.id} onAdded={load} />}
+        <div className="flex items-center gap-2">
+          {householdId && user && <AddCourseButton householdId={householdId} userId={user.id} onAdded={load} />}
+          <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
+            <SettingsIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {courses.length === 0 ? (

@@ -5,6 +5,8 @@ import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
 import { NoteCard } from '../components/notes/NoteCard'
 import { AddNoteButton } from '../components/notes/AddNoteButton'
+import { useSettings } from '../hooks/useSettings'
+import { SettingsIcon } from '../components/layout/icons'
 
 interface Course {
   id: string
@@ -27,6 +29,7 @@ export function Notes() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
   const profiles = useProfiles()
+  const { openSettings } = useSettings()
 
   const [notes, setNotes] = useState<Note[]>([])
   const [courses, setCourses] = useState<Course[]>([])
@@ -71,7 +74,12 @@ export function Notes() {
     <div className="mx-auto max-w-2xl space-y-4 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Notes</h1>
-        {householdId && user && <AddNoteButton householdId={householdId} userId={user.id} courses={courses} />}
+        <div className="flex items-center gap-2">
+          {householdId && user && <AddNoteButton householdId={householdId} userId={user.id} courses={courses} />}
+          <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
+            <SettingsIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2">

@@ -8,6 +8,8 @@ import { NudgePickerButton } from '../components/us/NudgePickerButton'
 import { NudgeRow } from '../components/us/NudgeRow'
 import { ThoughtComposer } from '../components/us/ThoughtComposer'
 import { ThoughtCard } from '../components/us/ThoughtCard'
+import { useSettings } from '../hooks/useSettings'
+import { SettingsIcon } from '../components/layout/icons'
 
 type Status = 'sent' | 'on_it' | 'done' | 'later'
 
@@ -47,6 +49,7 @@ export function Us() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
   const profiles = useProfiles()
+  const { openSettings } = useSettings()
 
   const [subView, setSubView] = useState<'nudges' | 'thoughts'>('nudges')
   const [partnerId, setPartnerId] = useState<string | null>(null)
@@ -153,17 +156,22 @@ export function Us() {
     <div className="mx-auto max-w-2xl space-y-4 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Us</h1>
-        {subView === 'nudges' && user && householdId && (
-          <NudgePickerButton
-            householdId={householdId}
-            userId={user.id}
-            partnerId={partnerId}
-            partnerLabel={partnerLabel}
-            tasks={tasks}
-            readings={readings}
-            onAdded={load}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {subView === 'nudges' && user && householdId && (
+            <NudgePickerButton
+              householdId={householdId}
+              userId={user.id}
+              partnerId={partnerId}
+              partnerLabel={partnerLabel}
+              tasks={tasks}
+              readings={readings}
+              onAdded={load}
+            />
+          )}
+          <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
+            <SettingsIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
