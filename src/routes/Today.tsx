@@ -274,7 +274,7 @@ export function Today() {
       ? format(anchorDate, 'MMMM yyyy')
       : view === 'week'
         ? `${format(startOfWeek(anchorDate, { weekStartsOn: 0 }), 'MMM d')} – ${format(endOfWeek(anchorDate, { weekStartsOn: 0 }), 'MMM d, yyyy')}`
-        : format(anchorDate, 'EEEE, MMMM d, yyyy')
+        : format(anchorDate, 'MMMM d, yyyy')
 
   if (householdLoading || loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
