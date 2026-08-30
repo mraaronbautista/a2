@@ -4,12 +4,15 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
+import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { NudgePickerButton } from '../components/us/NudgePickerButton'
 import { NudgeRow } from '../components/us/NudgeRow'
 import { ThoughtComposer } from '../components/us/ThoughtComposer'
 import { ThoughtCard } from '../components/us/ThoughtCard'
 import { useSettings } from '../hooks/useSettings'
 import { SettingsIcon } from '../components/layout/icons'
+
+const REALTIME_TABLES = ['nudges', 'thoughts']
 
 type Status = 'sent' | 'on_it' | 'done' | 'later'
 
@@ -86,6 +89,8 @@ export function Us() {
   useEffect(() => {
     load()
   }, [load])
+
+  useRealtimeRefresh(REALTIME_TABLES, load)
 
   const titleFor = useMemo(() => {
     const taskMap = new Map(tasks.map((t) => [t.id, t.title]))

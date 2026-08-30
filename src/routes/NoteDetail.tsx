@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import type { JSONContent } from '@tiptap/react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useProfiles } from '../hooks/useProfiles'
+import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { RichTextEditor } from '../components/notes/RichTextEditor'
 import { CaseBriefFields, type CaseBrief } from '../components/notes/CaseBriefFields'
+
+const REALTIME_TABLES = ['notes']
 
 interface Course {
   id: string
@@ -91,6 +94,17 @@ export function NoteDetail() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Skip the live refresh while there are unsaved local edits — pulling the
+  // partner's version mid-edit would silently overwrite what's being typed.
+  const dirtyRef = useRef(dirty)
+  useEffect(() => {
+    dirtyRef.current = dirty
+  }, [dirty])
+  const handleRealtimeChange = useCallback(() => {
+    if (!dirtyRef.current) load()
+  }, [load])
+  useRealtimeRefresh(REALTIME_TABLES, handleRealtimeChange)
 
   function markDirty<T>(setter: (v: T) => void) {
     return (v: T) => {

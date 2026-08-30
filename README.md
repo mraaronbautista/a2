@@ -23,6 +23,10 @@ keeps the sidebar plus a "Quick add" button above it. A Settings sheet (gear ico
 covers notifications, a manual light/dark toggle (persisted per-device), a short in-app guide, and
 sign out.
 
+**Live sync**: calendar events, tasks, readings, nudges, thoughts, notes, and courses all update in
+real time across both accounts via Supabase Realtime (`useRealtimeRefresh` hook) — no manual reload
+needed to see the other partner's changes. RLS still applies to what each subscriber receives.
+
 **Push notifications are live**: the `send-reminders` Edge Function is deployed, its VAPID secrets
 are set, and the DB trigger (instant push on a new nudge) and pg_cron sweep (task-due reminders,
 every 15 min) are both wired to it and verified working end-to-end against the real project. The

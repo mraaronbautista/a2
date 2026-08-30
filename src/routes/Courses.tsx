@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
+import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { CourseCard } from '../components/courses/CourseCard'
 import { AddCourseButton } from '../components/courses/AddCourseButton'
 import { useSettings } from '../hooks/useSettings'
 import { SettingsIcon } from '../components/layout/icons'
+
+const REALTIME_TABLES = ['courses', 'reading_items']
 
 interface Course {
   id: string
@@ -45,6 +48,8 @@ export function Courses() {
   useEffect(() => {
     load()
   }, [load])
+
+  useRealtimeRefresh(REALTIME_TABLES, load)
 
   if (householdLoading || loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>

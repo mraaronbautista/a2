@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
+import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { useSettings } from '../hooks/useSettings'
 import { ChevronDownIcon, SettingsIcon } from '../components/layout/icons'
 import { expandOccurrences } from '../lib/recurrence'
@@ -74,6 +75,7 @@ interface Nudge {
 
 const DEFAULT_COLOR = '#5b6478'
 const TASK_COLOR = '#d97a4d'
+const REALTIME_TABLES = ['calendar_events', 'tasks', 'reading_items', 'reading_status']
 
 function rangeForView(view: ViewMode, anchorDate: Date) {
   if (view === 'month') {
@@ -167,6 +169,10 @@ export function Today() {
     window.addEventListener('a2:item-added', load)
     return () => window.removeEventListener('a2:item-added', load)
   }, [load])
+
+  // Live sync — the partner's edits (a new event, a task checked off
+  // elsewhere) show up here without a manual reload.
+  useRealtimeRefresh(REALTIME_TABLES, load)
 
   const toggleTask = useCallback(async (task: RawTask) => {
     setRawTasks((prev) =>

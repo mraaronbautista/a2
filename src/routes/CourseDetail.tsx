@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
+import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { ReadingItemRow } from '../components/courses/ReadingItemRow'
 import { AddReadingButton } from '../components/courses/AddReadingButton'
 import { EditCourseButton } from '../components/courses/EditCourseButton'
+
+const REALTIME_TABLES = ['courses', 'reading_items']
 
 type PrepStatus = 'unprepped' | 'prepped' | 'cold_called'
 
@@ -77,6 +80,8 @@ export function CourseDetail() {
   useEffect(() => {
     load()
   }, [load])
+
+  useRealtimeRefresh(REALTIME_TABLES, load)
 
   async function toggleRead(readingId: string) {
     if (!user) return

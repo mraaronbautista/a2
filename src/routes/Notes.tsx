@@ -3,10 +3,13 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
+import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { NoteCard } from '../components/notes/NoteCard'
 import { AddNoteButton } from '../components/notes/AddNoteButton'
 import { useSettings } from '../hooks/useSettings'
 import { SettingsIcon } from '../components/layout/icons'
+
+const REALTIME_TABLES = ['notes']
 
 interface Course {
   id: string
@@ -57,6 +60,8 @@ export function Notes() {
   useEffect(() => {
     load()
   }, [load])
+
+  useRealtimeRefresh(REALTIME_TABLES, load)
 
   const filtered = useMemo(() => {
     return notes.filter((n) => {
