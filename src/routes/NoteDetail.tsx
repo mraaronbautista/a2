@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { format } from 'date-fns'
 import type { JSONContent } from '@tiptap/react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
@@ -18,8 +19,10 @@ interface NoteRow {
   type: 'case_brief' | 'freeform'
   visibility: 'private' | 'shared'
   owner_id: string
+  last_edited_by: string | null
   course_id: string | null
   tags: string[]
+  updated_at: string
   content: JSONContent | null
   case_brief_facts: string | null
   case_brief_issue: string | null
@@ -55,7 +58,7 @@ export function NoteDetail() {
       supabase
         .from('notes')
         .select(
-          'id, title, type, visibility, owner_id, course_id, tags, content, case_brief_facts, case_brief_issue, case_brief_holding, case_brief_reasoning, case_brief_dissent',
+          'id, title, type, visibility, owner_id, last_edited_by, course_id, tags, updated_at, content, case_brief_facts, case_brief_issue, case_brief_holding, case_brief_reasoning, case_brief_dissent',
         )
         .eq('id', noteId)
         .single(),
@@ -97,13 +100,15 @@ export function NoteDetail() {
   }
 
   async function handleSave() {
-    if (!note) return
+    if (!note || !user) return
     setSaving(true)
 
     const tags = tagsInput
       .split(',')
       .map((t) => t.trim())
       .filter(Boolean)
+
+    const updatedAt = new Date().toISOString()
 
     await supabase
       .from('notes')
@@ -118,10 +123,12 @@ export function NoteDetail() {
         case_brief_holding: note.type === 'case_brief' ? caseBrief.holding : null,
         case_brief_reasoning: note.type === 'case_brief' ? caseBrief.reasoning : null,
         case_brief_dissent: note.type === 'case_brief' ? caseBrief.dissent : null,
-        updated_at: new Date().toISOString(),
+        last_edited_by: user.id,
+        updated_at: updatedAt,
       })
       .eq('id', note.id)
 
+    setNote((prev) => (prev ? { ...prev, last_edited_by: user.id, updated_at: updatedAt } : prev))
     setSaving(false)
     setDirty(false)
   }
@@ -140,7 +147,12 @@ export function NoteDetail() {
     return <div className="p-6 text-sm text-ink-muted">Note not found.</div>
   }
 
-  const canManage = user?.id === note.owner_id
+  // Shared notes are co-managed (RLS lets either partner update/delete a
+  // shared row) — private notes are only ever fetchable by their owner in
+  // the first place, so canManage is really just "did this note load".
+  const canManage = user ? user.id === note.owner_id || note.visibility === 'shared' : false
+  const lastEditorId = note.last_edited_by ?? note.owner_id
+  const lastEditorLabel = lastEditorId === user?.id ? 'you' : (profiles[lastEditorId] ?? 'partner')
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6 pb-16">
@@ -160,7 +172,7 @@ export function NoteDetail() {
         ) : (
           <h1 className="text-2xl font-semibold text-navy">{title || 'Untitled'}</h1>
         )}
-        {canManage ? (
+        {canManage && (
           <button
             onClick={handleSave}
             disabled={saving || !dirty}
@@ -168,10 +180,12 @@ export function NoteDetail() {
           >
             {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
           </button>
-        ) : (
-          <span className="shrink-0 text-sm text-ink-muted">Shared by {profiles[note.owner_id] ?? 'partner'}</span>
         )}
       </div>
+
+      <p className="text-xs text-ink-muted">
+        Last edited by {lastEditorLabel} · {format(new Date(note.updated_at), 'MMM d, h:mm a')}
+      </p>
 
       {canManage && (
         <div className="flex flex-wrap items-center gap-2">
@@ -210,16 +224,6 @@ export function NoteDetail() {
             onChange={(e) => markDirty(setTagsInput)(e.target.value)}
             className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 py-1 text-xs text-ink outline-none focus:border-accent"
           />
-        </div>
-      )}
-
-      {!canManage && (note.tags ?? []).length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {note.tags.map((t) => (
-            <span key={t} className="rounded-full bg-bg px-2 py-0.5 text-xs text-ink-muted">
-              {t}
-            </span>
-          ))}
         </div>
       )}
 

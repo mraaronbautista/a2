@@ -14,7 +14,8 @@ subtasks, and file attachments via Supabase Storage), **Courses** (reading lists
 completion + class-prep/cold-call tracking, plus an "is_shared" classmates toggle so both partners
 can manage the same reading list), **Notes** (case briefs; Tiptap freeform notes with headings,
 multicolor highlight, working lists, and images via Supabase Storage; search; tag-by-course;
-private/shared), and **Us** (a Nudges/Thoughts sub-view toggle — nudges keep their two-way
+private/shared — a shared note is co-managed, so either partner can edit or delete it, and the
+detail view shows who last touched it and when), and **Us** (a Nudges/Thoughts sub-view toggle — nudges keep their two-way
 on-it/later/done reactions and activity log; Thoughts is an inbox for unstructured shared notes
 with comment threads and one-tap promotion into a task). The mobile nav is a floating pill (Today,
 Courses, Notes, Us) with the quick-add "+" as its own circle beside it, at the same level; desktop
