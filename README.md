@@ -13,9 +13,11 @@ event), **Courses** (reading lists with per-user completion + class-prep/cold-ca
 and images via Supabase Storage; search; tag-by-course; private/shared), and **Us** (a Nudges/
 Thoughts sub-view toggle — nudges keep their two-way on-it/later/done reactions and activity log;
 Thoughts is an inbox for unstructured shared notes with comment threads and one-tap promotion into
-a task). Only push notifications remain from the original spec. A course's rich-text "outline" is
-still deferred — it's really just a freeform note attached to the course, so it doesn't need its
-own field now that Notes exists; wire it up as a fast-follow if it turns out to be missed.
+a task). A Settings sheet (desktop sidebar / mobile top bar) covers a manual light/dark toggle
+(persisted per-device), a short in-app guide, and sign out. Only push notifications remain from the
+original spec. A course's rich-text "outline" is still deferred — it's really just a freeform note
+attached to the course, so it doesn't need its own field now that Notes exists; wire it up as a
+fast-follow if it turns out to be missed.
 
 ## Stack
 

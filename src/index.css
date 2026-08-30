@@ -14,8 +14,10 @@
   --color-accent-bg: #fbe9de;
 }
 
+/* System dark, no explicit in-app choice saved (useTheme.ts sets
+   data-theme once a user picks Light/Dark from Settings). */
 @media (prefers-color-scheme: dark) {
-  @theme {
+  :root:not([data-theme='light']) {
     --color-bg: #12151c;
     --color-surface: #1a1f2b;
     --color-ink: #eef0f4;
@@ -26,6 +28,19 @@
     --color-accent: #e8926a;
     --color-accent-bg: #33251d;
   }
+}
+
+/* Explicit choice wins in both directions regardless of system setting. */
+:root[data-theme='dark'] {
+  --color-bg: #12151c;
+  --color-surface: #1a1f2b;
+  --color-ink: #eef0f4;
+  --color-ink-muted: #9aa3b8;
+  --color-border: #2a3040;
+  --color-navy: #eef0f4;
+  --color-navy-light: #b9c1d6;
+  --color-accent: #e8926a;
+  --color-accent-bg: #33251d;
 }
 
 body {

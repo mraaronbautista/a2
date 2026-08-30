@@ -148,7 +148,7 @@ export function Today() {
     load()
   }, [load])
 
-  async function toggleTask(task: RawTask) {
+  const toggleTask = useCallback(async (task: RawTask) => {
     setRawTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, completed_at: t.completed_at ? null : new Date().toISOString() } : t)),
     )
@@ -156,24 +156,27 @@ export function Today() {
       .from('tasks')
       .update({ completed_at: task.completed_at ? null : new Date().toISOString() })
       .eq('id', task.id)
-  }
+  }, [])
 
-  async function toggleReading(readingId: string) {
-    if (!user) return
-    const isDone = readingDone.has(readingId)
-    setReadingDone((prev) => {
-      const next = new Set(prev)
-      if (isDone) {
-        next.delete(readingId)
-      } else {
-        next.add(readingId)
-      }
-      return next
-    })
-    await supabase
-      .from('reading_status')
-      .upsert({ reading_item_id: readingId, user_id: user.id, completed_at: isDone ? null : new Date().toISOString() })
-  }
+  const toggleReading = useCallback(
+    async (readingId: string) => {
+      if (!user) return
+      const isDone = readingDone.has(readingId)
+      setReadingDone((prev) => {
+        const next = new Set(prev)
+        if (isDone) {
+          next.delete(readingId)
+        } else {
+          next.add(readingId)
+        }
+        return next
+      })
+      await supabase
+        .from('reading_status')
+        .upsert({ reading_item_id: readingId, user_id: user.id, completed_at: isDone ? null : new Date().toISOString() })
+    },
+    [user, readingDone],
+  )
 
   const agendaItems = useMemo<AgendaItem[]>(() => {
     const { start, end } = rangeForView(view, anchorDate)
@@ -231,7 +234,7 @@ export function Today() {
 
     const all = [...eventItems, ...taskItems, ...readingItems]
     return user ? (mineOnly ? all.filter((i) => i.ownerId === user.id) : all) : all
-  }, [rawEvents, rawTasks, rawReadings, readingDone, view, anchorDate, mineOnly, user])
+  }, [rawEvents, rawTasks, rawReadings, readingDone, view, anchorDate, mineOnly, user, toggleTask, toggleReading])
 
   function ownerLabel(item: AgendaItem) {
     if (!user || item.ownerId === user.id) return undefined
