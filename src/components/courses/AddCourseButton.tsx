@@ -88,7 +88,7 @@ export function AddCourseButton({ householdId, userId, onAdded }: AddCourseButto
             </div>
             <label className="flex items-center gap-2 text-xs text-ink-muted">
               <input type="checkbox" checked={isShared} onChange={(e) => setIsShared(e.target.checked)} className="accent-accent" />
-              We're classmates — share this reading list, both can manage it
+              We're both in this course — share and co-manage the reading list
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setOpen(false)} className="px-3 py-2 text-sm text-ink-muted">

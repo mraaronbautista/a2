@@ -19,7 +19,7 @@ export function CourseCard({ id, name, professor, color, readingCount, isShared 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium text-ink">{name}</p>
-          {isShared && <span className="shrink-0 rounded-full bg-accent-bg px-1.5 py-0.5 text-[10px] text-accent">Classmates</span>}
+          {isShared && <span className="shrink-0 rounded-full bg-accent-bg px-1.5 py-0.5 text-[10px] text-accent">Shared</span>}
         </div>
         {professor && <p className="truncate text-xs text-ink-muted">{professor}</p>}
       </div>

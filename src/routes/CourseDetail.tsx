@@ -140,7 +140,7 @@ export function CourseDetail() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-semibold text-navy">{course.name}</h1>
-              {course.is_shared && <span className="rounded-full bg-accent-bg px-2 py-0.5 text-xs text-accent">Classmates</span>}
+              {course.is_shared && <span className="rounded-full bg-accent-bg px-2 py-0.5 text-xs text-accent">Shared</span>}
             </div>
             {course.professor && <p className="text-sm text-ink-muted">{course.professor}</p>}
           </div>
