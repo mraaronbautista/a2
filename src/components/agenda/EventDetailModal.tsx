@@ -190,27 +190,28 @@ export function EventDetailModal({ eventId, userId, courses, onClose, onSaved, o
                   </select>
                 )}
 
-                <div className="flex gap-2">
-                  <label className="flex-1 text-xs text-ink-muted">
-                    Starts
-                    <input
-                      type="datetime-local"
-                      required
-                      value={startAt}
-                      onChange={(e) => markDirty(setStartAt)(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-ink outline-none focus:border-accent"
-                    />
-                  </label>
-                  <label className="flex-1 text-xs text-ink-muted">
-                    Ends
-                    <input
-                      type="datetime-local"
-                      value={endAt}
-                      onChange={(e) => markDirty(setEndAt)(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-ink outline-none focus:border-accent"
-                    />
-                  </label>
-                </div>
+                {/* Stacked rather than side-by-side — a datetime-local
+                    input's native date+time+AM/PM rendering needs more
+                    width than a half-width column has, and was clipping. */}
+                <label className="block text-xs text-ink-muted">
+                  Starts
+                  <input
+                    type="datetime-local"
+                    required
+                    value={startAt}
+                    onChange={(e) => markDirty(setStartAt)(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-ink outline-none focus:border-accent"
+                  />
+                </label>
+                <label className="block text-xs text-ink-muted">
+                  Ends
+                  <input
+                    type="datetime-local"
+                    value={endAt}
+                    onChange={(e) => markDirty(setEndAt)(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-ink outline-none focus:border-accent"
+                  />
+                </label>
 
                 <div>
                   <span className="text-xs text-ink-muted">Repeats weekly on</span>
