@@ -1,0 +1,138 @@
+import type { AgendaItem } from './types'
+
+interface DayTimelineProps {
+  items: AgendaItem[]
+  ownerLabel: (item: AgendaItem) => string | undefined
+  onOpenItem?: (item: AgendaItem) => void
+}
+
+const PX_PER_MINUTE = 1
+// Tasks (and events with no real duration) get a legible minimum block
+// height rather than collapsing to a sliver — not a real duration.
+const MIN_BLOCK_MINUTES = 30
+const DEFAULT_RANGE_START_HOUR = 7
+const DEFAULT_RANGE_END_HOUR = 20
+
+function minutesSinceMidnight(d: Date) {
+  return d.getHours() * 60 + d.getMinutes()
+}
+
+function formatHour(hour: number) {
+  const h = ((hour + 11) % 12) + 1
+  const suffix = hour < 12 || hour === 24 ? 'am' : 'pm'
+  return `${h}${suffix}`
+}
+
+function ItemCheckbox({ item }: { item: AgendaItem }) {
+  if (item.kind === 'event' || !item.onToggle) return null
+  return (
+    <input
+      type="checkbox"
+      checked={!!item.completed}
+      onChange={item.onToggle}
+      onClick={(e) => e.stopPropagation()}
+      className="h-3 w-3 shrink-0 accent-accent"
+    />
+  )
+}
+
+export function DayTimeline({ items, ownerLabel, onOpenItem }: DayTimelineProps) {
+  const timed = items.filter((i) => i.kind !== 'reading')
+  const untimed = items.filter((i) => i.kind === 'reading')
+
+  if (timed.length === 0 && untimed.length === 0) {
+    return <p className="text-sm text-ink-muted">Nothing scheduled.</p>
+  }
+
+  const blockEnd = (item: AgendaItem) => {
+    const durationMs = item.kind === 'event' ? item.end.getTime() - item.start.getTime() : 0
+    const minMs = MIN_BLOCK_MINUTES * 60000
+    return new Date(item.start.getTime() + Math.max(durationMs, minMs))
+  }
+
+  const earliestMinute = timed.length > 0 ? Math.min(...timed.map((i) => minutesSinceMidnight(i.start))) : DEFAULT_RANGE_START_HOUR * 60
+  const latestMinute = timed.length > 0 ? Math.max(...timed.map((i) => minutesSinceMidnight(blockEnd(i)))) : DEFAULT_RANGE_END_HOUR * 60
+
+  const rangeStartHour = Math.min(DEFAULT_RANGE_START_HOUR, Math.floor(earliestMinute / 60))
+  const rangeEndHour = Math.max(DEFAULT_RANGE_END_HOUR, Math.ceil(latestMinute / 60))
+  const rangeStartMinute = rangeStartHour * 60
+  const hours = Array.from({ length: rangeEndHour - rangeStartHour + 1 }, (_, i) => rangeStartHour + i)
+  const totalHeight = (rangeEndHour - rangeStartHour) * 60 * PX_PER_MINUTE
+
+  return (
+    <div className="space-y-3">
+      {untimed.length > 0 && (
+        <div className="space-y-1.5">
+          {untimed.map((item) => (
+            <div
+              key={item.key}
+              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-sm"
+              style={{ backgroundColor: `${item.color}26` }}
+            >
+              <ItemCheckbox item={item} />
+              <span className={['truncate font-medium', item.completed ? 'text-ink-muted line-through' : 'text-ink'].join(' ')}>
+                {item.title}
+              </span>
+              <span className="shrink-0 text-xs text-ink-muted">Reading</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex" style={{ height: totalHeight }}>
+        <div className="relative w-12 shrink-0 text-right">
+          {hours.map((h) => (
+            <span
+              key={h}
+              className="absolute right-2 -translate-y-1/2 text-xs text-ink-muted"
+              style={{ top: (h - rangeStartHour) * 60 * PX_PER_MINUTE }}
+            >
+              {formatHour(h)}
+            </span>
+          ))}
+        </div>
+
+        <div className="relative flex-1 border-l border-border">
+          {hours.map((h) => (
+            <div
+              key={h}
+              className="absolute inset-x-0 border-t border-border/60"
+              style={{ top: (h - rangeStartHour) * 60 * PX_PER_MINUTE }}
+            />
+          ))}
+
+          {timed.map((item) => {
+            const top = (minutesSinceMidnight(item.start) - rangeStartMinute) * PX_PER_MINUTE
+            const height = Math.max(
+              (minutesSinceMidnight(blockEnd(item)) - minutesSinceMidnight(item.start)) * PX_PER_MINUTE,
+              MIN_BLOCK_MINUTES * PX_PER_MINUTE,
+            )
+            const label = ownerLabel(item)
+
+            return (
+              <div
+                key={item.key}
+                onClick={onOpenItem ? () => onOpenItem(item) : undefined}
+                className={['absolute left-1 right-1 overflow-hidden rounded-md px-2 py-1 text-left text-xs', onOpenItem ? 'cursor-pointer' : ''].join(
+                  ' ',
+                )}
+                style={{ top, height, backgroundColor: `${item.color}33`, borderLeft: `3px solid ${item.color}` }}
+              >
+                <span className="flex items-center gap-1">
+                  <ItemCheckbox item={item} />
+                  <span className={['truncate font-medium', item.completed ? 'text-ink-muted line-through' : 'text-ink'].join(' ')}>
+                    {item.title}
+                  </span>
+                </span>
+                <span className="block truncate text-ink-muted">
+                  {formatHour(Math.floor(minutesSinceMidnight(item.start) / 60))}
+                  {label ? ` · ${label}` : ''}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}

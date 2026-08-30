@@ -1,6 +1,6 @@
-import { isSameDay } from 'date-fns'
+import { format, isSameDay, isToday } from 'date-fns'
 import type { AgendaItem } from './types'
-import { DayEventList } from './DayEventList'
+import { DayTimeline } from './DayTimeline'
 
 interface DayViewProps {
   anchorDate: Date
@@ -11,12 +11,11 @@ interface DayViewProps {
 
 export function DayView({ anchorDate, items, ownerLabel, onOpenItem }: DayViewProps) {
   return (
-    <DayEventList
-      date={anchorDate}
-      items={items.filter((i) => isSameDay(i.start, anchorDate))}
-      ownerLabel={ownerLabel}
-      onOpenItem={onOpenItem}
-      headingFormat="EEEE, MMMM d"
-    />
+    <div>
+      <h3 className={['mb-2 text-sm font-semibold', isToday(anchorDate) ? 'text-accent' : 'text-ink'].join(' ')}>
+        {format(anchorDate, 'EEEE, MMMM d')}
+      </h3>
+      <DayTimeline items={items.filter((i) => isSameDay(i.start, anchorDate))} ownerLabel={ownerLabel} onOpenItem={onOpenItem} />
+    </div>
   )
 }
