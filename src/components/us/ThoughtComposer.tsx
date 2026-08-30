@@ -9,7 +9,7 @@ interface ThoughtComposerProps {
 
 export function ThoughtComposer({ householdId, userId, onPosted }: ThoughtComposerProps) {
   const [body, setBody] = useState('')
-  const [visibility, setVisibility] = useState<'private' | 'shared'>('private')
+  const [visibility, setVisibility] = useState<'private' | 'shared'>('shared')
   const [posting, setPosting] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
@@ -26,7 +26,7 @@ export function ThoughtComposer({ householdId, userId, onPosted }: ThoughtCompos
     })
 
     setBody('')
-    setVisibility('private')
+    setVisibility('shared')
     setPosting(false)
     onPosted()
   }

@@ -10,6 +10,7 @@ interface Course {
   name: string
   professor: string | null
   color: string | null
+  is_shared: boolean
 }
 
 export function Courses() {
@@ -24,7 +25,7 @@ export function Courses() {
     setLoading(true)
 
     const [coursesRes, readingsRes] = await Promise.all([
-      supabase.from('courses').select('id, name, professor, color').order('created_at', { ascending: true }),
+      supabase.from('courses').select('id, name, professor, color, is_shared').order('created_at', { ascending: true }),
       supabase.from('reading_items').select('course_id'),
     ])
 
@@ -65,6 +66,7 @@ export function Courses() {
               professor={c.professor}
               color={c.color}
               readingCount={readingCounts[c.id] ?? 0}
+              isShared={c.is_shared}
             />
           ))}
         </div>

@@ -7,6 +7,7 @@ interface EditCourseButtonProps {
   initialName: string
   initialProfessor: string | null
   initialColor: string | null
+  initialIsShared: boolean
   onSaved: () => void
   onDeleted: () => void
 }
@@ -16,6 +17,7 @@ export function EditCourseButton({
   initialName,
   initialProfessor,
   initialColor,
+  initialIsShared,
   onSaved,
   onDeleted,
 }: EditCourseButtonProps) {
@@ -23,12 +25,13 @@ export function EditCourseButton({
   const [name, setName] = useState(initialName)
   const [professor, setProfessor] = useState(initialProfessor ?? '')
   const [color, setColor] = useState(initialColor ?? COURSE_COLORS[0])
+  const [isShared, setIsShared] = useState(initialIsShared)
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await supabase.from('courses').update({ name, professor: professor || null, color }).eq('id', courseId)
+    await supabase.from('courses').update({ name, professor: professor || null, color, is_shared: isShared }).eq('id', courseId)
     setSaving(false)
     setOpen(false)
     onSaved()
@@ -85,6 +88,10 @@ export function EditCourseButton({
                 ))}
               </div>
             </div>
+            <label className="flex items-center gap-2 text-xs text-ink-muted">
+              <input type="checkbox" checked={isShared} onChange={(e) => setIsShared(e.target.checked)} className="accent-accent" />
+              We're classmates — share this reading list, both can manage it
+            </label>
             <div className="flex items-center justify-between pt-2">
               <button type="button" onClick={handleDelete} className="text-sm text-accent">
                 Delete course

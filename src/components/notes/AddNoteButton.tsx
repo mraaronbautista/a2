@@ -33,7 +33,7 @@ export function AddNoteButton({ householdId, userId, courses }: AddNoteButtonPro
         course_id: courseId || null,
         type,
         title,
-        visibility: 'private',
+        visibility: 'shared',
       })
       .select('id')
       .single()

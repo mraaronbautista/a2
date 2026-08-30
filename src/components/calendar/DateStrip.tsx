@@ -15,7 +15,7 @@ export function DateStrip({ selectedDate, onSelect }: DateStripProps) {
   })
 
   return (
-    <div className="flex gap-1 overflow-x-auto">
+    <div className="flex gap-1">
       {days.map((day) => {
         const selected = isSameDay(day, selectedDate)
         return (
@@ -23,7 +23,7 @@ export function DateStrip({ selectedDate, onSelect }: DateStripProps) {
             key={day.toISOString()}
             onClick={() => onSelect(day)}
             className={[
-              'flex shrink-0 flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-center',
+              'flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-center',
               selected ? 'bg-navy text-bg' : isToday(day) ? 'text-accent' : 'text-ink-muted hover:text-ink',
             ].join(' ')}
           >

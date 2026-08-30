@@ -14,6 +14,7 @@ interface Course {
   professor: string | null
   color: string | null
   owner_id: string
+  is_shared: boolean
 }
 
 interface ReadingItem {
@@ -44,7 +45,7 @@ export function CourseDetail() {
     setLoading(true)
 
     const [courseRes, readingsRes] = await Promise.all([
-      supabase.from('courses').select('id, name, professor, color, owner_id').eq('id', courseId).single(),
+      supabase.from('courses').select('id, name, professor, color, owner_id, is_shared').eq('id', courseId).single(),
       supabase.from('reading_items').select('id, title, source_link, due_date, order_index').eq('course_id', courseId).order('order_index'),
     ])
 
@@ -124,7 +125,7 @@ export function CourseDetail() {
     return <div className="p-6 text-sm text-ink-muted">Course not found.</div>
   }
 
-  const canManage = user?.id === course.owner_id
+  const canManage = user?.id === course.owner_id || course.is_shared
   const nextOrderIndex = readings.length > 0 ? Math.max(...readings.map((r) => r.order_index)) + 1 : 0
 
   return (
@@ -137,7 +138,10 @@ export function CourseDetail() {
         <div className="flex items-center gap-3">
           <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: course.color ?? '#5b6478' }} />
           <div>
-            <h1 className="text-2xl font-semibold text-navy">{course.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold text-navy">{course.name}</h1>
+              {course.is_shared && <span className="rounded-full bg-accent-bg px-2 py-0.5 text-xs text-accent">Classmates</span>}
+            </div>
             {course.professor && <p className="text-sm text-ink-muted">{course.professor}</p>}
           </div>
         </div>
@@ -147,6 +151,7 @@ export function CourseDetail() {
             initialName={course.name}
             initialProfessor={course.professor}
             initialColor={course.color}
+            initialIsShared={course.is_shared}
             onSaved={load}
             onDeleted={() => navigate('/courses')}
           />

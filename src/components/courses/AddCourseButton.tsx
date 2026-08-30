@@ -13,6 +13,7 @@ export function AddCourseButton({ householdId, userId, onAdded }: AddCourseButto
   const [name, setName] = useState('')
   const [professor, setProfessor] = useState('')
   const [color, setColor] = useState(COURSE_COLORS[0])
+  const [isShared, setIsShared] = useState(false)
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
@@ -25,6 +26,7 @@ export function AddCourseButton({ householdId, userId, onAdded }: AddCourseButto
       name,
       professor: professor || null,
       color,
+      is_shared: isShared,
     })
 
     setSaving(false)
@@ -32,6 +34,7 @@ export function AddCourseButton({ householdId, userId, onAdded }: AddCourseButto
     setName('')
     setProfessor('')
     setColor(COURSE_COLORS[0])
+    setIsShared(false)
     onAdded()
   }
 
@@ -83,6 +86,10 @@ export function AddCourseButton({ householdId, userId, onAdded }: AddCourseButto
                 ))}
               </div>
             </div>
+            <label className="flex items-center gap-2 text-xs text-ink-muted">
+              <input type="checkbox" checked={isShared} onChange={(e) => setIsShared(e.target.checked)} className="accent-accent" />
+              We're classmates — share this reading list, both can manage it
+            </label>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setOpen(false)} className="px-3 py-2 text-sm text-ink-muted">
                 Cancel

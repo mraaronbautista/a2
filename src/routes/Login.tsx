@@ -30,10 +30,7 @@ export function Login() {
   return (
     <div className="flex min-h-svh items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Logo size={32} className="rounded-lg" />
-          <span className="text-xl font-semibold text-navy">A²</span>
-        </div>
+        <Logo size={40} className="rounded-lg" />
         <p className="mt-4 text-sm text-ink-muted">Sign in.</p>
 
         <form onSubmit={handleSubmit} className="mt-3 space-y-3">
