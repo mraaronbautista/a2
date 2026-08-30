@@ -85,7 +85,7 @@ export function AppShell() {
           <Outlet />
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-10 flex justify-center px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-center gap-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:hidden">
           <div className="flex items-center gap-1 rounded-full border border-border bg-surface p-1.5 shadow-lg">
             {NAV_ITEMS.map((item) => (
               <NavLink
@@ -100,16 +100,16 @@ export function AppShell() {
                 {item.label}
               </NavLink>
             ))}
-            {user && householdId && (
-              <button
-                onClick={() => setQuickAddOpen(true)}
-                aria-label="Quick add"
-                className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-2xl leading-none text-white shadow-md transition-transform hover:scale-105"
-              >
-                +
-              </button>
-            )}
           </div>
+          {user && householdId && (
+            <button
+              onClick={() => setQuickAddOpen(true)}
+              aria-label="Quick add"
+              className="flex h-14 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-3xl leading-none text-white shadow-lg transition-transform hover:scale-105"
+            >
+              +
+            </button>
+          )}
         </nav>
 
         {user && householdId && (

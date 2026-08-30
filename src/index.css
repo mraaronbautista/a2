@@ -65,6 +65,19 @@ body {
   min-height: 100svh;
 }
 
+/* iOS Safari auto-zooms the whole page in when a focused text input's
+   font-size is under 16px, and nothing zooms it back out when the input
+   blurs/unmounts — the modals use text-sm (14px) inputs, so typing into one
+   (e.g. quick-add's title field) would zoom in and leave the page stuck
+   zoomed after closing it. <select> is excluded: it opens a native picker
+   rather than a text caret and doesn't trigger this, so leaving it alone
+   keeps small dropdowns (like the Mine/Both filter) visually consistent
+   with the buttons next to them. */
+input,
+textarea {
+  font-size: 16px;
+}
+
 /* Tiptap editor content — plain CSS rather than Tailwind Typography (not
    installed): list markers/indentation, heading sizes, and marks all need
    real rules since Preflight strips list-style with nothing to replace it. */
