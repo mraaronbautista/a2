@@ -264,8 +264,8 @@ export function Today() {
     view === 'month'
       ? format(anchorDate, 'MMMM yyyy')
       : view === 'week'
-        ? `${format(startOfWeek(anchorDate, { weekStartsOn: 0 }), 'MMM d')} – ${format(endOfWeek(anchorDate, { weekStartsOn: 0 }), 'MMM d')}`
-        : format(anchorDate, 'EEEE, MMMM d')
+        ? `${format(startOfWeek(anchorDate, { weekStartsOn: 0 }), 'MMM d')} – ${format(endOfWeek(anchorDate, { weekStartsOn: 0 }), 'MMM d, yyyy')}`
+        : format(anchorDate, 'EEEE, MMMM d, yyyy')
 
   if (householdLoading || loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
@@ -282,7 +282,7 @@ export function Today() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-6 pb-24">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-navy">{format(new Date(), 'EEEE, MMMM d, yyyy')}</h1>
+        <h1 className="text-2xl font-semibold text-navy">{periodLabel}</h1>
         <div className="flex items-center gap-2">
           <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
             {(['Mine', 'Both'] as const).map((label) => (
@@ -330,7 +330,6 @@ export function Today() {
           >
             ›
           </button>
-          <span className="ml-1 hidden truncate text-sm font-medium text-ink sm:inline">{periodLabel}</span>
         </div>
 
         <div className="flex shrink-0 gap-1 rounded-full bg-surface p-1 text-xs">
