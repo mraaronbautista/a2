@@ -281,34 +281,18 @@ export function Today() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-6 pb-24">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-navy">{periodLabel}</h1>
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
-            {(['Mine', 'Both'] as const).map((label) => (
-              <button
-                key={label}
-                onClick={() => setMineOnly(label === 'Mine')}
-                className={[
-                  'rounded-full px-3 py-1 font-medium',
-                  (label === 'Mine') === mineOnly ? 'bg-accent-bg text-accent' : 'text-ink-muted',
-                ].join(' ')}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={openSettings}
-            aria-label="Settings"
-            className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden"
-          >
-            <SettingsIcon className="h-5 w-5" />
-          </button>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 truncate text-2xl font-semibold text-navy">{periodLabel}</h1>
+        <button
+          onClick={openSettings}
+          aria-label="Settings"
+          className="shrink-0 rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden"
+        >
+          <SettingsIcon className="h-5 w-5" />
+        </button>
       </div>
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <button
             onClick={() => setAnchorDate(shiftAnchor(view, anchorDate, -1))}
@@ -332,18 +316,30 @@ export function Today() {
           </button>
         </div>
 
-        <div className="flex shrink-0 gap-1 rounded-full bg-surface p-1 text-xs">
-          {(['day', 'week', 'month'] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={['rounded-full px-2.5 py-1 font-medium capitalize sm:px-3', v === view ? 'bg-accent-bg text-accent' : 'text-ink-muted'].join(
-                ' ',
-              )}
-            >
-              {v}
-            </button>
-          ))}
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
+            {(['day', 'week', 'month'] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={['rounded-full px-2.5 py-1 font-medium capitalize sm:px-3', v === view ? 'bg-accent-bg text-accent' : 'text-ink-muted'].join(
+                  ' ',
+                )}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+
+          <select
+            value={mineOnly ? 'mine' : 'both'}
+            onChange={(e) => setMineOnly(e.target.value === 'mine')}
+            aria-label="Filter by owner"
+            className="rounded-full border border-transparent bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-muted outline-none focus:border-accent"
+          >
+            <option value="both">Both</option>
+            <option value="mine">Mine</option>
+          </select>
         </div>
       </div>
 

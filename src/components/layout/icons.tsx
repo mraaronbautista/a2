@@ -43,11 +43,19 @@ export function UsIcon({ className }: IconProps) {
   )
 }
 
+// Built from one tooth shape rotated 8 times around the center, and two
+// concentric circles — symmetric by construction, rather than a hand-typed
+// cog path (which read visibly lopsided, same issue the heart icon had).
+const GEAR_TOOTH_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315]
+
 export function SettingsIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
+      <circle cx="12" cy="12" r="7" />
       <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.04-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H4.5a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.04 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1.04-1.56V4.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V10.5a1.7 1.7 0 0 0 1.56 1.04H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.04z" />
+      {GEAR_TOOTH_ANGLES.map((angle) => (
+        <rect key={angle} x="10.85" y="1.6" width="2.3" height="3" rx="0.7" transform={`rotate(${angle} 12 12)`} />
+      ))}
     </svg>
   )
 }
