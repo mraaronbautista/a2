@@ -8,7 +8,10 @@ Netlify. Installable to the home screen on iPad/iPhone/Mac.
 responsive shell are done. Nav is four screens: **Today** (merged with Calendar — Day/Week/Month
 as an internal view toggle rather than separate nav items, with a due tasks/readings agenda,
 recurring events, a 7-day DateStrip, Mine/Both overlay, and one quick-add for either a task or an
-event), **Courses** (reading lists with per-user completion + class-prep/cold-call tracking),
+event; click a task to open a full edit/delete modal — date & time, course, notes, subtasks, and
+file attachments via Supabase Storage), **Courses** (reading lists with per-user completion +
+class-prep/cold-call tracking, plus an "is_shared" classmates toggle so both partners can manage
+the same reading list),
 **Notes** (case briefs; Tiptap freeform notes with headings, multicolor highlight, working lists,
 and images via Supabase Storage; search; tag-by-course; private/shared), and **Us** (a Nudges/
 Thoughts sub-view toggle — nudges keep their two-way on-it/later/done reactions and activity log;

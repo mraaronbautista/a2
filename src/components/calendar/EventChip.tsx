@@ -6,16 +6,20 @@ interface EventChipProps {
   ownerLabel?: string
   dense?: boolean
   showCheckbox?: boolean
+  onOpen?: () => void
 }
 
-export function EventChip({ item, ownerLabel, dense, showCheckbox }: EventChipProps) {
+export function EventChip({ item, ownerLabel, dense, showCheckbox, onOpen }: EventChipProps) {
   const checkable = showCheckbox && item.kind !== 'event' && item.onToggle
+  const openable = showCheckbox && item.kind === 'task' && onOpen
 
   return (
     <div
+      onClick={openable ? onOpen : undefined}
       className={[
         'flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-left',
         dense ? 'text-xs' : 'text-sm',
+        openable ? 'cursor-pointer' : '',
       ].join(' ')}
       style={{ backgroundColor: `${item.color}26` }}
     >
@@ -24,6 +28,7 @@ export function EventChip({ item, ownerLabel, dense, showCheckbox }: EventChipPr
           type="checkbox"
           checked={!!item.completed}
           onChange={item.onToggle}
+          onClick={(e) => e.stopPropagation()}
           className="h-3.5 w-3.5 shrink-0 accent-accent"
         />
       ) : (
@@ -32,9 +37,9 @@ export function EventChip({ item, ownerLabel, dense, showCheckbox }: EventChipPr
       <span className={['truncate font-medium', item.completed ? 'text-ink-muted line-through' : 'text-ink'].join(' ')}>
         {item.title}
       </span>
-      {/* Tasks/readings are date-only (no meaningful time-of-day), so only
-          real calendar events get a time label. */}
-      {item.kind === 'event' && <span className="shrink-0 text-ink-muted">{format(item.start, 'h:mma').toLowerCase()}</span>}
+      {/* Readings are date-only (no meaningful time-of-day); events and
+          tasks can both carry a real time now. */}
+      {item.kind !== 'reading' && <span className="shrink-0 text-ink-muted">{format(item.start, 'h:mma').toLowerCase()}</span>}
       {ownerLabel && <span className="shrink-0 truncate text-ink-muted">· {ownerLabel}</span>}
     </div>
   )

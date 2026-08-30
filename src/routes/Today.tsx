@@ -24,6 +24,7 @@ import { WeekView } from '../components/calendar/WeekView'
 import { DayView } from '../components/calendar/DayView'
 import { DateStrip } from '../components/calendar/DateStrip'
 import { QuickAddButton } from '../components/agenda/QuickAddButton'
+import { TaskDetailModal } from '../components/agenda/TaskDetailModal'
 import { TaskItem } from '../components/tasks/TaskItem'
 
 type ViewMode = 'day' | 'week' | 'month'
@@ -105,6 +106,7 @@ export function Today() {
   const [courses, setCourses] = useState<Course[]>([])
   const [nudges, setNudges] = useState<Nudge[]>([])
   const [loading, setLoading] = useState(true)
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!user || !householdId) return
@@ -343,7 +345,13 @@ export function Today() {
           <h2 className="mb-2 text-sm font-semibold text-ink-muted">No due date</h2>
           <ul className="space-y-2">
             {undatedTasks.map((task) => (
-              <TaskItem key={task.id} label={task.title} checked={!!task.completed_at} onToggle={() => toggleTask(task)} />
+              <TaskItem
+                key={task.id}
+                label={task.title}
+                checked={!!task.completed_at}
+                onToggle={() => toggleTask(task)}
+                onClick={() => setOpenTaskId(task.id)}
+              />
             ))}
             {undatedReadings.map((r) => (
               <TaskItem
@@ -368,8 +376,12 @@ export function Today() {
           }}
         />
       )}
-      {view === 'week' && <WeekView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} />}
-      {view === 'day' && <DayView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} />}
+      {view === 'week' && (
+        <WeekView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenTask={(item) => setOpenTaskId(item.eventId)} />
+      )}
+      {view === 'day' && (
+        <DayView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenTask={(item) => setOpenTaskId(item.eventId)} />
+      )}
 
       {user && (
         <QuickAddButton
@@ -379,6 +391,23 @@ export function Today() {
           courses={courses}
           defaultDate={anchorDate}
           onAdded={load}
+        />
+      )}
+
+      {openTaskId && user && (
+        <TaskDetailModal
+          taskId={openTaskId}
+          userId={user.id}
+          courses={courses}
+          onClose={() => setOpenTaskId(null)}
+          onSaved={() => {
+            setOpenTaskId(null)
+            load()
+          }}
+          onDeleted={() => {
+            setOpenTaskId(null)
+            load()
+          }}
         />
       )}
     </div>

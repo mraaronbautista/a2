@@ -4,15 +4,22 @@ interface TaskItemProps {
   dueLabel?: string
   checked: boolean
   onToggle: () => void
+  onClick?: () => void
 }
 
-export function TaskItem({ label, meta, dueLabel, checked, onToggle }: TaskItemProps) {
+export function TaskItem({ label, meta, dueLabel, checked, onToggle, onClick }: TaskItemProps) {
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+    <li
+      onClick={onClick}
+      className={['flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3', onClick ? 'cursor-pointer' : ''].join(
+        ' ',
+      )}
+    >
       <input
         type="checkbox"
         checked={checked}
         onChange={onToggle}
+        onClick={(e) => e.stopPropagation()}
         className="h-4 w-4 shrink-0 accent-accent"
       />
       <div className="min-w-0 flex-1">
