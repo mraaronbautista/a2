@@ -6,10 +6,10 @@ interface WeekViewProps {
   anchorDate: Date
   items: AgendaItem[]
   ownerLabel: (item: AgendaItem) => string | undefined
-  onOpenTask?: (item: AgendaItem) => void
+  onOpenItem?: (item: AgendaItem) => void
 }
 
-export function WeekView({ anchorDate, items, ownerLabel, onOpenTask }: WeekViewProps) {
+export function WeekView({ anchorDate, items, ownerLabel, onOpenItem }: WeekViewProps) {
   const days = eachDayOfInterval({
     start: startOfWeek(anchorDate, { weekStartsOn: 0 }),
     end: endOfWeek(anchorDate, { weekStartsOn: 0 }),
@@ -23,7 +23,7 @@ export function WeekView({ anchorDate, items, ownerLabel, onOpenTask }: WeekView
           date={day}
           items={items.filter((i) => isSameDay(i.start, day))}
           ownerLabel={ownerLabel}
-          onOpenTask={onOpenTask}
+          onOpenItem={onOpenItem}
         />
       ))}
     </div>

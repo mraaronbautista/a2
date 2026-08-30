@@ -27,6 +27,7 @@ import { DayView } from '../components/calendar/DayView'
 import { DateStrip } from '../components/calendar/DateStrip'
 import { QuickAddButton } from '../components/agenda/QuickAddButton'
 import { TaskDetailModal } from '../components/agenda/TaskDetailModal'
+import { EventDetailModal } from '../components/agenda/EventDetailModal'
 import { TaskItem } from '../components/tasks/TaskItem'
 
 type ViewMode = 'day' | 'week' | 'month'
@@ -89,8 +90,12 @@ function rangeForView(view: ViewMode, anchorDate: Date) {
 
 function shiftAnchor(view: ViewMode, anchorDate: Date, direction: 1 | -1) {
   if (view === 'month') return direction === 1 ? addMonths(anchorDate, 1) : subMonths(anchorDate, 1)
-  if (view === 'week') return direction === 1 ? addWeeks(anchorDate, 1) : subWeeks(anchorDate, 1)
-  return direction === 1 ? addDays(anchorDate, 1) : subDays(anchorDate, 1)
+  // Day mode jumps a full week at a time (same weekday) rather than one day
+  // — the DateStrip below already shows the whole Sun-Sat week containing
+  // anchorDate, so a single ‹/› press moving only one day just nudged the
+  // selection inside a strip that hadn't otherwise changed. Pick a specific
+  // day by tapping it in the strip instead.
+  return direction === 1 ? addWeeks(anchorDate, 1) : subWeeks(anchorDate, 1)
 }
 
 export function Today() {
@@ -110,6 +115,7 @@ export function Today() {
   const [nudges, setNudges] = useState<Nudge[]>([])
   const [loading, setLoading] = useState(true)
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
+  const [openEventId, setOpenEventId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!user || !householdId) return
@@ -240,6 +246,11 @@ export function Today() {
     const all = [...eventItems, ...taskItems, ...readingItems]
     return user ? (mineOnly ? all.filter((i) => i.ownerId === user.id) : all) : all
   }, [rawEvents, rawTasks, rawReadings, readingDone, view, anchorDate, mineOnly, user, toggleTask, toggleReading])
+
+  function openItem(item: AgendaItem) {
+    if (item.kind === 'event') setOpenEventId(item.eventId)
+    else if (item.kind === 'task') setOpenTaskId(item.eventId)
+  }
 
   function ownerLabel(item: AgendaItem) {
     if (!user || item.ownerId === user.id) return undefined
@@ -388,12 +399,8 @@ export function Today() {
           }}
         />
       )}
-      {view === 'week' && (
-        <WeekView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenTask={(item) => setOpenTaskId(item.eventId)} />
-      )}
-      {view === 'day' && (
-        <DayView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenTask={(item) => setOpenTaskId(item.eventId)} />
-      )}
+      {view === 'week' && <WeekView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />}
+      {view === 'day' && <DayView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />}
 
       {user && (
         <QuickAddButton
@@ -418,6 +425,23 @@ export function Today() {
           }}
           onDeleted={() => {
             setOpenTaskId(null)
+            load()
+          }}
+        />
+      )}
+
+      {openEventId && user && (
+        <EventDetailModal
+          eventId={openEventId}
+          userId={user.id}
+          courses={courses}
+          onClose={() => setOpenEventId(null)}
+          onSaved={() => {
+            setOpenEventId(null)
+            load()
+          }}
+          onDeleted={() => {
+            setOpenEventId(null)
             load()
           }}
         />

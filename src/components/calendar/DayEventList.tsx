@@ -6,11 +6,11 @@ interface DayEventListProps {
   date: Date
   items: AgendaItem[]
   ownerLabel: (item: AgendaItem) => string | undefined
-  onOpenTask?: (item: AgendaItem) => void
+  onOpenItem?: (item: AgendaItem) => void
   headingFormat?: string
 }
 
-export function DayEventList({ date, items, ownerLabel, onOpenTask, headingFormat = 'EEEE, MMM d' }: DayEventListProps) {
+export function DayEventList({ date, items, ownerLabel, onOpenItem, headingFormat = 'EEEE, MMM d' }: DayEventListProps) {
   const sorted = [...items].sort((a, b) => a.start.getTime() - b.start.getTime())
 
   return (
@@ -28,7 +28,7 @@ export function DayEventList({ date, items, ownerLabel, onOpenTask, headingForma
               item={item}
               ownerLabel={ownerLabel(item)}
               showCheckbox
-              onOpen={onOpenTask ? () => onOpenTask(item) : undefined}
+              onOpen={onOpenItem ? () => onOpenItem(item) : undefined}
             />
           ))
         )}

@@ -11,7 +11,7 @@ interface EventChipProps {
 
 export function EventChip({ item, ownerLabel, dense, showCheckbox, onOpen }: EventChipProps) {
   const checkable = showCheckbox && item.kind !== 'event' && item.onToggle
-  const openable = showCheckbox && item.kind === 'task' && onOpen
+  const openable = showCheckbox && (item.kind === 'task' || item.kind === 'event') && onOpen
 
   return (
     <div
