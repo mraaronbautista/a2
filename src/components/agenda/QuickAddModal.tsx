@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { format } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
 
 interface Course {
@@ -35,7 +34,6 @@ function toLocalInputValue(date: Date) {
 export function QuickAddModal({ householdId, userId, courses, open, onClose, onAdded }: QuickAddModalProps) {
   const [itemType, setItemType] = useState<'task' | 'event'>('task')
   const [title, setTitle] = useState('')
-  const [dueDate, setDueDate] = useState('')
   const [courseId, setCourseId] = useState('')
   const [startAt, setStartAt] = useState('')
   const [endAt, setEndAt] = useState('')
@@ -51,7 +49,6 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
     const now = new Date()
     setItemType('task')
     setTitle('')
-    setDueDate(format(now, 'yyyy-MM-dd'))
     setCourseId('')
     setStartAt(toLocalInputValue(now))
     setEndAt('')
@@ -80,7 +77,8 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
         household_id: householdId,
         owner_id: userId,
         title,
-        due_date: dueDate || null,
+        due_date: startAt ? new Date(startAt).toISOString() : null,
+        end_at: endAt ? new Date(endAt).toISOString() : null,
         visibility,
       })
     } else {
@@ -140,72 +138,65 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
           className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         />
 
-        {itemType === 'task' ? (
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
+        {itemType === 'event' && courses.length > 0 && (
+          <select
+            value={courseId}
+            onChange={(e) => setCourseId(e.target.value)}
             className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+          >
+            <option value="">No course</option>
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Stacked rather than side-by-side — a datetime-local input's
+            native date+time+AM/PM rendering needs more width than a
+            half-width column has, and was clipping. Tasks reuse the same
+            Starts/Ends pair as events — a task is just a time block that
+            defaults to no end, rather than a fundamentally different shape. */}
+        <label className="block text-xs text-ink-muted">
+          Starts
+          <input
+            type="datetime-local"
+            required
+            value={startAt}
+            onChange={(e) => setStartAt(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-ink outline-none focus:border-accent"
           />
-        ) : (
-          <>
-            {courses.length > 0 && (
-              <select
-                value={courseId}
-                onChange={(e) => setCourseId(e.target.value)}
-                className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-              >
-                <option value="">No course</option>
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            )}
+        </label>
+        <label className="block text-xs text-ink-muted">
+          Ends
+          <input
+            type="datetime-local"
+            value={endAt}
+            onChange={(e) => setEndAt(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-ink outline-none focus:border-accent"
+          />
+        </label>
 
-            {/* Stacked rather than side-by-side — a datetime-local
-                input's native date+time+AM/PM rendering needs more
-                width than a half-width column has, and was clipping. */}
-            <label className="block text-xs text-ink-muted">
-              Starts
-              <input
-                type="datetime-local"
-                required
-                value={startAt}
-                onChange={(e) => setStartAt(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-ink outline-none focus:border-accent"
-              />
-            </label>
-            <label className="block text-xs text-ink-muted">
-              Ends
-              <input
-                type="datetime-local"
-                value={endAt}
-                onChange={(e) => setEndAt(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-ink outline-none focus:border-accent"
-              />
-            </label>
-
-            <div>
-              <span className="text-xs text-ink-muted">Repeats weekly on</span>
-              <div className="mt-1 flex gap-1">
-                {REPEAT_DAYS.map((d) => (
-                  <button
-                    key={d.value}
-                    type="button"
-                    onClick={() => toggleRepeatDay(d.value)}
-                    className={[
-                      'h-7 w-7 rounded-full text-xs',
-                      repeatDays.has(d.value) ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
-                    ].join(' ')}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
+        {itemType === 'event' && (
+          <div>
+            <span className="text-xs text-ink-muted">Repeats weekly on</span>
+            <div className="mt-1 flex gap-1">
+              {REPEAT_DAYS.map((d) => (
+                <button
+                  key={d.value}
+                  type="button"
+                  onClick={() => toggleRepeatDay(d.value)}
+                  className={[
+                    'h-7 w-7 rounded-full text-xs',
+                    repeatDays.has(d.value) ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
+                  ].join(' ')}
+                >
+                  {d.label}
+                </button>
+              ))}
             </div>
-          </>
+          </div>
         )}
 
         <div className="flex gap-2 text-xs">

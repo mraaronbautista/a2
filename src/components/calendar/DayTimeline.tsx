@@ -45,7 +45,9 @@ export function DayTimeline({ items, ownerLabel, onOpenItem }: DayTimelineProps)
   }
 
   const blockEnd = (item: AgendaItem) => {
-    const durationMs = item.kind === 'event' ? item.end.getTime() - item.start.getTime() : 0
+    // Tasks/events both carry a real end when one was set (item.end > item.start);
+    // otherwise fall back to a legible minimum block rather than a sliver.
+    const durationMs = Math.max(item.end.getTime() - item.start.getTime(), 0)
     const minMs = MIN_BLOCK_MINUTES * 60000
     return new Date(item.start.getTime() + Math.max(durationMs, minMs))
   }

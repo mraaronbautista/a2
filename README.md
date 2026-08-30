@@ -9,8 +9,10 @@ responsive shell are done. Nav is four screens: **Today** (merged with Calendar 
 as an internal view toggle rather than separate nav items, with a due tasks/readings agenda,
 recurring events, a 7-day DateStrip, a Mine/Both filter dropdown, a clickable month/year picker on
 the heading for fast long-range navigation, and one quick-add for either a task or an event, opened
-from the nav bar's "+"; click a task to open a full edit/delete modal — date & time, course, notes,
-subtasks, and file attachments via Supabase Storage), **Courses** (reading lists with per-user
+from the nav bar's "+"; a task carries an optional Starts/Ends pair just like an event does (not
+just a single due date), rendering as a proportional block on the Day timeline when both are set;
+click a task to open a full edit/delete modal — start/end time, course, notes, subtasks, and file
+attachments via Supabase Storage), **Courses** (reading lists with per-user
 completion + class-prep/cold-call tracking, plus an "is_shared" classmates toggle so both partners
 can manage the same reading list), **Notes** (case briefs; Tiptap freeform notes with headings,
 multicolor highlight, working lists, and images via Supabase Storage; search; tag-by-course;

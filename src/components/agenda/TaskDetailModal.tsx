@@ -22,6 +22,7 @@ interface TaskRow {
   title: string
   description: string | null
   due_date: string | null
+  end_at: string | null
   course_id: string | null
   visibility: 'private' | 'shared'
   owner_id: string
@@ -55,6 +56,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
 
   const [title, setTitle] = useState('')
   const [dueAt, setDueAt] = useState('')
+  const [endAt, setEndAt] = useState('')
   const [courseId, setCourseId] = useState('')
   const [notes, setNotes] = useState('')
   const [visibility, setVisibility] = useState<'private' | 'shared'>('shared')
@@ -65,7 +67,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
     setLoading(true)
     const { data } = await supabase
       .from('tasks')
-      .select('id, title, description, due_date, course_id, visibility, owner_id, checklist, attachments')
+      .select('id, title, description, due_date, end_at, course_id, visibility, owner_id, checklist, attachments')
       .eq('id', taskId)
       .single()
 
@@ -74,6 +76,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
     if (t) {
       setTitle(t.title)
       setDueAt(t.due_date ? toLocalInputValue(t.due_date) : '')
+      setEndAt(t.end_at ? toLocalInputValue(t.end_at) : '')
       setCourseId(t.course_id ?? '')
       setNotes(t.description ?? '')
       setVisibility(t.visibility)
@@ -119,6 +122,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
       .update({
         title,
         due_date: dueAt ? new Date(dueAt).toISOString() : null,
+        end_at: endAt ? new Date(endAt).toISOString() : null,
         course_id: courseId || null,
         description: notes || null,
         visibility,
@@ -195,7 +199,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
             {canManage ? (
               <>
                 <label className="block text-xs text-ink-muted">
-                  Due
+                  Starts
                   <div className="mt-1 flex gap-1">
                     <input
                       type="datetime-local"
@@ -207,6 +211,27 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
                       <button
                         type="button"
                         onClick={() => markDirty(setDueAt)('')}
+                        className="shrink-0 rounded-lg border border-border px-2 text-xs text-ink-muted hover:text-ink"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </label>
+
+                <label className="block text-xs text-ink-muted">
+                  Ends
+                  <div className="mt-1 flex gap-1">
+                    <input
+                      type="datetime-local"
+                      value={endAt}
+                      onChange={(e) => markDirty(setEndAt)(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-bg px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
+                    />
+                    {endAt && (
+                      <button
+                        type="button"
+                        onClick={() => markDirty(setEndAt)('')}
                         className="shrink-0 rounded-lg border border-border px-2 text-xs text-ink-muted hover:text-ink"
                       >
                         Clear

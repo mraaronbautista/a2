@@ -48,6 +48,7 @@ interface RawTask {
   id: string
   title: string
   due_date: string | null
+  end_at: string | null
   completed_at: string | null
   owner_id: string
 }
@@ -126,7 +127,7 @@ export function Today() {
 
     const [eventsRes, tasksRes, readingsRes, coursesRes, nudgesRes] = await Promise.all([
       supabase.from('calendar_events').select('id, title, start_at, end_at, recurrence_rule, owner_id, color, courses(name, color)'),
-      supabase.from('tasks').select('id, title, due_date, completed_at, owner_id'),
+      supabase.from('tasks').select('id, title, due_date, end_at, completed_at, owner_id'),
       supabase.from('reading_items').select('id, title, due_date, course_id, courses(name, color, owner_id)'),
       supabase.from('courses').select('id, name, color'),
       supabase.from('nudges').select('id, message, item_type, from_user_id').eq('to_user_id', user.id).eq('status', 'sent'),
@@ -234,7 +235,7 @@ export function Today() {
         eventId: t.id,
         title: t.title,
         start: new Date(t.due_date as string),
-        end: new Date(t.due_date as string),
+        end: t.end_at ? new Date(t.end_at) : new Date(t.due_date as string),
         color: TASK_COLOR,
         ownerId: t.owner_id,
         courseName: null,
