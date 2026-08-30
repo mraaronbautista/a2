@@ -8,11 +8,12 @@ import { useTheme } from '../../hooks/useTheme'
 import { SettingsContext } from '../../hooks/useSettings'
 import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
-import { CoursesIcon, TodayIcon, UsIcon } from './icons'
+import { CoursesIcon, NotesIcon, TodayIcon, UsIcon } from './icons'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Today', Icon: TodayIcon },
   { to: '/courses', label: 'Courses', Icon: CoursesIcon },
+  { to: '/notes', label: 'Notes', Icon: NotesIcon },
   { to: '/us', label: 'Us', Icon: UsIcon },
 ]
 
@@ -105,7 +106,7 @@ export function AppShell() {
             <button
               onClick={() => setQuickAddOpen(true)}
               aria-label="Quick add"
-              className="flex h-14 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-3xl leading-none text-white shadow-lg transition-transform hover:scale-105"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-3xl leading-none text-white shadow-lg transition-transform hover:scale-105"
             >
               +
             </button>

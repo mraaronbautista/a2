@@ -8,8 +8,6 @@ import { NudgePickerButton } from '../components/us/NudgePickerButton'
 import { NudgeRow } from '../components/us/NudgeRow'
 import { ThoughtComposer } from '../components/us/ThoughtComposer'
 import { ThoughtCard } from '../components/us/ThoughtCard'
-import { NoteCard } from '../components/notes/NoteCard'
-import { AddNoteButton } from '../components/notes/AddNoteButton'
 import { useSettings } from '../hooks/useSettings'
 import { SettingsIcon } from '../components/layout/icons'
 
@@ -47,47 +45,26 @@ interface Thought {
   created_at: string
 }
 
-interface Course {
-  id: string
-  name: string
-  color: string | null
-}
-
-interface Note {
-  id: string
-  title: string
-  type: 'case_brief' | 'freeform'
-  visibility: 'private' | 'shared'
-  owner_id: string
-  course_id: string | null
-  updated_at: string
-  courses: { name: string; color: string | null } | null
-}
-
 export function Us() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
   const profiles = useProfiles()
   const { openSettings } = useSettings()
 
-  const [subView, setSubView] = useState<'nudges' | 'thoughts' | 'notes'>('nudges')
+  const [subView, setSubView] = useState<'nudges' | 'thoughts'>('nudges')
   const [partnerId, setPartnerId] = useState<string | null>(null)
   const [nudges, setNudges] = useState<Nudge[]>([])
   const [tasks, setTasks] = useState<Item[]>([])
   const [readings, setReadings] = useState<Item[]>([])
   const [thoughts, setThoughts] = useState<Thought[]>([])
   const [addedToToday, setAddedToToday] = useState<Set<string>>(new Set())
-  const [notes, setNotes] = useState<Note[]>([])
-  const [courses, setCourses] = useState<Course[]>([])
-  const [noteSearch, setNoteSearch] = useState('')
-  const [noteCourseFilter, setNoteCourseFilter] = useState('')
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     if (!householdId || !user) return
     setLoading(true)
 
-    const [membersRes, nudgesRes, tasksRes, readingsRes, thoughtsRes, notesRes, coursesRes] = await Promise.all([
+    const [membersRes, nudgesRes, tasksRes, readingsRes, thoughtsRes] = await Promise.all([
       supabase.from('household_members').select('user_id').eq('household_id', householdId),
       supabase.from('nudges').select('id, from_user_id, to_user_id, item_type, item_id, message, status, created_at').order('created_at', {
         ascending: false,
@@ -95,11 +72,6 @@ export function Us() {
       supabase.from('tasks').select('id, title'),
       supabase.from('reading_items').select('id, title'),
       supabase.from('thoughts').select('id, owner_id, body, visibility, comments, created_at').order('created_at', { ascending: false }),
-      supabase
-        .from('notes')
-        .select('id, title, type, visibility, owner_id, course_id, updated_at, courses(name, color)')
-        .order('updated_at', { ascending: false }),
-      supabase.from('courses').select('id, name, color'),
     ])
 
     const members = (membersRes.data ?? []) as { user_id: string }[]
@@ -108,8 +80,6 @@ export function Us() {
     setTasks((tasksRes.data ?? []) as Item[])
     setReadings((readingsRes.data ?? []) as Item[])
     setThoughts((thoughtsRes.data ?? []) as Thought[])
-    setNotes((notesRes.data ?? []) as unknown as Note[])
-    setCourses((coursesRes.data ?? []) as Course[])
     setLoading(false)
   }, [householdId, user])
 
@@ -182,12 +152,6 @@ export function Us() {
 
   const partnerLabel = partnerId ? (profiles[partnerId] ?? 'partner') : 'partner'
 
-  const filteredNotes = notes.filter((n) => {
-    if (noteCourseFilter && n.course_id !== noteCourseFilter) return false
-    if (noteSearch && !n.title.toLowerCase().includes(noteSearch.toLowerCase())) return false
-    return true
-  })
-
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6">
       <div className="flex items-center justify-between">
@@ -204,7 +168,6 @@ export function Us() {
               onAdded={load}
             />
           )}
-          {subView === 'notes' && user && householdId && <AddNoteButton householdId={householdId} userId={user.id} courses={courses} />}
           <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
             <SettingsIcon className="h-5 w-5" />
           </button>
@@ -216,7 +179,6 @@ export function Us() {
           [
             ['nudges', 'Nudges'],
             ['thoughts', 'Thoughts'],
-            ['notes', 'Notes'],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -280,54 +242,6 @@ export function Us() {
                 />
               ))}
             </ul>
-          )}
-        </div>
-      )}
-
-      {subView === 'notes' && (
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Search notes…"
-              value={noteSearch}
-              onChange={(e) => setNoteSearch(e.target.value)}
-              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-            />
-            {courses.length > 0 && (
-              <select
-                value={noteCourseFilter}
-                onChange={(e) => setNoteCourseFilter(e.target.value)}
-                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-              >
-                <option value="">All courses</option>
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {filteredNotes.length === 0 ? (
-            <p className="text-sm text-ink-muted">{notes.length === 0 ? 'No notes yet.' : 'No notes match.'}</p>
-          ) : (
-            <div className="space-y-2">
-              {filteredNotes.map((n) => (
-                <NoteCard
-                  key={n.id}
-                  id={n.id}
-                  title={n.title}
-                  type={n.type}
-                  courseName={n.courses?.name ?? null}
-                  courseColor={n.courses?.color ?? null}
-                  visibility={n.visibility}
-                  updatedAt={n.updated_at}
-                  ownerLabel={user && n.owner_id !== user.id ? profiles[n.owner_id] : undefined}
-                />
-              ))}
-            </div>
           )}
         </div>
       )}

@@ -23,6 +23,15 @@ export function CoursesIcon({ className }: IconProps) {
   )
 }
 
+export function NotesIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
+      <rect x="5" y="3" width="14" height="18" rx="2" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  )
+}
+
 export function UsIcon({ className }: IconProps) {
   // Hand-built symmetric about x=12 (each control point mirrored exactly,
   // 24-x), rather than eyeballed coordinates — those read as visibly

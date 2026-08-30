@@ -5,21 +5,22 @@ other accountable. Built with React + Vite, Supabase (Postgres, Auth, Storage), 
 Netlify. Installable to the home screen on iPad/iPhone/Mac.
 
 **Status: MVP Phase 1 complete**, now iterating post-launch. Auth, full database schema, and a
-responsive shell are done. Nav is three screens: **Today** (merged with Calendar — Day/Week/Month
+responsive shell are done. Nav is four screens: **Today** (merged with Calendar — Day/Week/Month
 as an internal view toggle rather than separate nav items, with a due tasks/readings agenda,
 recurring events, a 7-day DateStrip, a Mine/Both filter dropdown, a clickable month/year picker on
 the heading for fast long-range navigation, and one quick-add for either a task or an event, opened
 from the nav bar's "+"; click a task to open a full edit/delete modal — date & time, course, notes,
 subtasks, and file attachments via Supabase Storage), **Courses** (reading lists with per-user
 completion + class-prep/cold-call tracking, plus an "is_shared" classmates toggle so both partners
-can manage the same reading list), and **Us** (a Nudges/Thoughts/Notes sub-view toggle — nudges
-keep their two-way on-it/later/done reactions and activity log; Thoughts is an inbox for
-unstructured shared notes with comment threads and one-tap promotion into a task; Notes holds case
-briefs and Tiptap freeform notes with headings, multicolor highlight, working lists, and images via
-Supabase Storage, with search and tag-by-course). The mobile nav is a floating pill (Today, Courses,
-Us, plus the quick-add "+" at the same level); desktop keeps the sidebar plus a "Quick add" button
-above it. A Settings sheet (gear icon on every screen) covers notifications, a manual light/dark
-toggle (persisted per-device), a short in-app guide, and sign out.
+can manage the same reading list), **Notes** (case briefs; Tiptap freeform notes with headings,
+multicolor highlight, working lists, and images via Supabase Storage; search; tag-by-course;
+private/shared), and **Us** (a Nudges/Thoughts sub-view toggle — nudges keep their two-way
+on-it/later/done reactions and activity log; Thoughts is an inbox for unstructured shared notes
+with comment threads and one-tap promotion into a task). The mobile nav is a floating pill (Today,
+Courses, Notes, Us) with the quick-add "+" as its own circle beside it, at the same level; desktop
+keeps the sidebar plus a "Quick add" button above it. A Settings sheet (gear icon on every screen)
+covers notifications, a manual light/dark toggle (persisted per-device), a short in-app guide, and
+sign out.
 
 **Push notifications are live**: the `send-reminders` Edge Function is deployed, its VAPID secrets
 are set, and the DB trigger (instant push on a new nudge) and pg_cron sweep (task-due reminders,
