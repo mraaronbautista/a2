@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
 interface Course {
@@ -32,6 +32,7 @@ function toLocalInputValue(date: Date) {
 }
 
 export function QuickAddModal({ householdId, userId, courses, open, onClose, onAdded }: QuickAddModalProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [itemType, setItemType] = useState<'task' | 'event'>('task')
   const [title, setTitle] = useState('')
   const [courseId, setCourseId] = useState('')
@@ -39,6 +40,9 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
   const [endAt, setEndAt] = useState('')
   const [repeatDays, setRepeatDays] = useState<Set<string>>(new Set())
   const [visibility, setVisibility] = useState<'private' | 'shared'>('shared')
+  const [subtasks, setSubtasks] = useState<string[]>([])
+  const [newSubtask, setNewSubtask] = useState('')
+  const [attachments, setAttachments] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
 
   // Re-seed defaults to "now" each time the modal opens, rather than once
@@ -54,7 +58,17 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
     setEndAt('')
     setRepeatDays(new Set())
     setVisibility('shared')
+    setSubtasks([])
+    setNewSubtask('')
+    setAttachments([])
   }, [open])
+
+  function addSubtask() {
+    const text = newSubtask.trim()
+    if (!text) return
+    setSubtasks((current) => [...current, text])
+    setNewSubtask('')
+  }
 
   function toggleRepeatDay(day: string) {
     setRepeatDays((prev) => {
@@ -73,14 +87,36 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
     setSaving(true)
 
     if (itemType === 'task') {
-      await supabase.from('tasks').insert({
-        household_id: householdId,
-        owner_id: userId,
-        title,
-        due_date: startAt ? new Date(startAt).toISOString() : null,
-        end_at: endAt ? new Date(endAt).toISOString() : null,
-        visibility,
-      })
+      const checklist = subtasks.map((text) => ({ id: crypto.randomUUID(), text, done: false }))
+      const { data: task } = await supabase
+        .from('tasks')
+        .insert({
+          household_id: householdId,
+          owner_id: userId,
+          title,
+          due_date: startAt ? new Date(startAt).toISOString() : null,
+          end_at: endAt ? new Date(endAt).toISOString() : null,
+          visibility,
+          checklist,
+        })
+        .select('id')
+        .single()
+
+      if (task && attachments.length > 0) {
+        const uploaded = await Promise.all(
+          attachments.map(async (file) => {
+            const path = `${userId}/${crypto.randomUUID()}-${file.name}`
+            const { error } = await supabase.storage.from('task-attachments').upload(path, file)
+            if (error) return null
+            const { data } = supabase.storage.from('task-attachments').getPublicUrl(path)
+            return { url: data.publicUrl, name: file.name }
+          }),
+        )
+        const savedAttachments = uploaded.filter((attachment) => attachment !== null)
+        if (savedAttachments.length > 0) {
+          await supabase.from('tasks').update({ attachments: savedAttachments }).eq('id', task.id)
+        }
+      }
     } else {
       const course = courses.find((c) => c.id === courseId)
       const recurrenceRule = repeatDays.size > 0 ? `FREQ=WEEKLY;BYDAY=${[...repeatDays].join(',')}` : null
@@ -106,32 +142,18 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/30 md:items-center" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-20 flex h-[100dvh] items-end justify-center overflow-hidden bg-black/30 md:items-center"
+      onClick={onClose}
+    >
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm space-y-3 rounded-t-2xl border border-border bg-surface p-6 md:rounded-2xl"
+        className="max-h-[calc(100dvh-0.75rem)] w-full max-w-sm touch-pan-y space-y-3 overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] md:max-h-[85vh] md:rounded-2xl"
       >
-        <div className="flex gap-2 text-xs">
-          {(['task', 'event'] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setItemType(t)}
-              className={[
-                'rounded-full px-3 py-1 font-medium capitalize',
-                itemType === t ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
-              ].join(' ')}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
         <input
           type="text"
           required
-          autoFocus
           placeholder={itemType === 'task' ? 'Task title' : 'Event title'}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -159,7 +181,7 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
             Starts/Ends pair as events — a task is just a time block that
             defaults to no end, rather than a fundamentally different shape. */}
         <label className="block text-xs text-ink-muted">
-          Starts
+          Start
           <input
             type="datetime-local"
             required
@@ -169,7 +191,7 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
           />
         </label>
         <label className="block text-xs text-ink-muted">
-          Ends
+          Due
           <input
             type="datetime-local"
             value={endAt}
@@ -177,6 +199,107 @@ export function QuickAddModal({ householdId, userId, courses, open, onClose, onA
             className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-ink outline-none focus:border-accent"
           />
         </label>
+
+        <div className="flex gap-2 text-xs">
+          {(['task', 'event'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setItemType(t)}
+              className={[
+                'rounded-full px-4 py-1.5 font-medium capitalize',
+                itemType === t ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
+              ].join(' ')}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {itemType === 'task' && (
+          <>
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-ink-muted">Attachments</span>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs font-medium text-accent"
+                >
+                  + Add
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? [])
+                  setAttachments((current) => [...current, ...files])
+                  e.target.value = ''
+                }}
+              />
+              {attachments.length > 0 && (
+                <ul className="mt-1 space-y-1">
+                  {attachments.map((file, index) => (
+                    <li key={`${file.name}-${index}`} className="flex items-center gap-2 text-sm text-ink">
+                      <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setAttachments((current) => current.filter((_, i) => i !== index))}
+                        className="text-ink-muted hover:text-accent"
+                        aria-label={`Remove ${file.name}`}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div>
+              <span className="text-xs text-ink-muted">Subtasks</span>
+              {subtasks.length > 0 && (
+                <ul className="mt-1 space-y-1">
+                  {subtasks.map((subtask, index) => (
+                    <li key={`${subtask}-${index}`} className="flex items-center gap-2 text-sm text-ink">
+                      <span className="h-3.5 w-3.5 shrink-0 rounded border border-border" />
+                      <span className="min-w-0 flex-1">{subtask}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSubtasks((current) => current.filter((_, i) => i !== index))}
+                        className="text-ink-muted hover:text-accent"
+                        aria-label={`Remove ${subtask}`}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  value={newSubtask}
+                  onChange={(e) => setNewSubtask(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addSubtask()
+                    }
+                  }}
+                  placeholder="Add a subtask"
+                  className="min-w-0 flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                />
+                <button type="button" onClick={addSubtask} className="rounded-lg border border-border px-3 text-sm text-ink">
+                  Add
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {itemType === 'event' && (
           <div>
