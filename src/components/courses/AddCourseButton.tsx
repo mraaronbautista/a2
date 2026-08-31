@@ -48,17 +48,16 @@ export function AddCourseButton({ householdId, userId, onAdded }: AddCourseButto
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/30 md:items-center" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-20 flex h-[100dvh] items-end justify-center overflow-hidden bg-black/30 md:items-center" onClick={() => setOpen(false)}>
           <form
             onSubmit={handleSubmit}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm space-y-3 rounded-t-2xl border border-border bg-surface p-6 md:rounded-2xl"
+            className="max-h-[calc(100dvh-0.75rem)] w-full max-w-sm touch-pan-y space-y-3 overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] md:max-h-[85vh] md:rounded-2xl"
           >
             <h2 className="text-sm font-semibold text-navy">Add course</h2>
             <input
               type="text"
               required
-              autoFocus
               placeholder="Course name"
               value={name}
               onChange={(e) => setName(e.target.value)}

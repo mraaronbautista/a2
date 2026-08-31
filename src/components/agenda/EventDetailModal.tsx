@@ -142,10 +142,10 @@ export function EventDetailModal({ eventId, userId, courses, onClose, onSaved, o
   }
 
   return (
-    <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/30 md:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-20 flex h-[100dvh] items-end justify-center overflow-hidden bg-black/30 md:items-center" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-t-2xl border border-border bg-surface p-6 md:rounded-2xl"
+        className="max-h-[calc(100dvh-0.75rem)] w-full max-w-sm touch-pan-y overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] md:max-h-[85vh] md:rounded-2xl"
       >
         {loading || !event ? (
           <p className="text-sm text-ink-muted">Loading…</p>

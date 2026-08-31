@@ -23,10 +23,10 @@ const SECTIONS = [
 
 export function HowToGuide({ onClose }: HowToGuideProps) {
   return (
-    <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/30 md:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-20 flex h-[100dvh] items-end justify-center overflow-hidden bg-black/30 md:items-center" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm space-y-4 rounded-t-2xl border border-border bg-surface p-6 md:rounded-2xl"
+        className="max-h-[calc(100dvh-0.75rem)] w-full max-w-sm touch-pan-y space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] md:max-h-[85vh] md:rounded-2xl"
       >
         <h2 className="text-sm font-semibold text-navy">How to use A²</h2>
         <div className="space-y-3">
