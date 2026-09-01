@@ -12,12 +12,58 @@ interface DayTimelineProps {
   nudgedKeys?: Set<string>
 }
 
-const PX_PER_MINUTE = 1
+// 1.5px/minute rather than 1 — more breathing room between gridlines so a
+// block's title/time/owner line doesn't feel cramped against its neighbors.
+const PX_PER_MINUTE = 1.5
 // Tasks (and events with no real duration) get a legible minimum block
 // height rather than collapsing to a sliver — not a real duration.
 const MIN_BLOCK_MINUTES = 30
 const DEFAULT_RANGE_START_HOUR = 7
 const DEFAULT_RANGE_END_HOUR = 20
+
+interface ColumnInfo {
+  col: number
+  cols: number
+}
+
+// Side-by-side column layout for items whose spans collide — without
+// this, two things at the same time both render full-width and the later
+// one simply covers the earlier one, hiding it entirely (exactly what the
+// "Overlap" badge above was otherwise just describing, not fixing). Items
+// are grouped into transitively-connected clusters (A overlaps B, B
+// overlaps C: all three share one cluster even if A and C don't touch),
+// then greedily assigned the lowest free column within their cluster —
+// the same approach a day-view calendar (e.g. Google Calendar) uses.
+function layoutColumns(sortedItems: AgendaItem[], blockEnd: (item: AgendaItem) => Date): Map<string, ColumnInfo> {
+  const result = new Map<string, ColumnInfo>()
+  let cluster: { item: AgendaItem; end: number; col: number }[] = []
+  let clusterEnd = -Infinity
+
+  function flushCluster() {
+    if (cluster.length === 0) return
+    const cols = Math.max(...cluster.map((c) => c.col)) + 1
+    for (const c of cluster) result.set(c.item.key, { col: c.col, cols })
+    cluster = []
+    clusterEnd = -Infinity
+  }
+
+  for (const item of sortedItems) {
+    const start = item.start.getTime()
+    const end = blockEnd(item).getTime()
+
+    if (cluster.length > 0 && start >= clusterEnd) flushCluster()
+
+    const usedCols = new Set(cluster.filter((c) => c.end > start).map((c) => c.col))
+    let col = 0
+    while (usedCols.has(col)) col++
+
+    cluster.push({ item, end, col })
+    clusterEnd = Math.max(clusterEnd, end)
+  }
+  flushCluster()
+
+  return result
+}
 
 function minutesSinceMidnight(d: Date) {
   return d.getHours() * 60 + d.getMinutes()
@@ -27,6 +73,17 @@ function formatHour(hour: number) {
   const h = ((hour + 11) % 12) + 1
   const suffix = hour < 12 || hour === 24 ? 'am' : 'pm'
   return `${h}${suffix}`
+}
+
+// Unlike formatHour (gridline labels — always on the hour), a block's own
+// label needs its actual minute too, e.g. "4:30am" — flooring to the hour
+// alone silently dropped the minutes and showed "4am" for a 4:30 start.
+function formatTime(d: Date) {
+  const hour = d.getHours()
+  const minute = d.getMinutes()
+  const h = ((hour + 11) % 12) + 1
+  const suffix = hour < 12 ? 'am' : 'pm'
+  return minute === 0 ? `${h}${suffix}` : `${h}:${String(minute).padStart(2, '0')}${suffix}`
 }
 
 function isOverdue(item: AgendaItem) {
@@ -61,6 +118,9 @@ export function DayTimeline({ items, ownerLabel, onOpenItem, overlappingKeys, on
     const minMs = MIN_BLOCK_MINUTES * 60000
     return new Date(item.start.getTime() + Math.max(durationMs, minMs))
   }
+
+  const sortedTimed = [...timed].sort((a, b) => a.start.getTime() - b.start.getTime())
+  const columns = layoutColumns(sortedTimed, blockEnd)
 
   const earliestMinute = timed.length > 0 ? Math.min(...timed.map((i) => minutesSinceMidnight(i.start))) : DEFAULT_RANGE_START_HOUR * 60
   const latestMinute = timed.length > 0 ? Math.max(...timed.map((i) => minutesSinceMidnight(blockEnd(i)))) : DEFAULT_RANGE_END_HOUR * 60
@@ -113,7 +173,7 @@ export function DayTimeline({ items, ownerLabel, onOpenItem, overlappingKeys, on
             />
           ))}
 
-          {timed.map((item) => {
+          {sortedTimed.map((item) => {
             const top = (minutesSinceMidnight(item.start) - rangeStartMinute) * PX_PER_MINUTE
             const durationMinutes = Math.round((blockEnd(item).getTime() - item.start.getTime()) / 60000)
             const height = Math.max(
@@ -124,17 +184,25 @@ export function DayTimeline({ items, ownerLabel, onOpenItem, overlappingKeys, on
             const overlapping = overlappingKeys?.has(item.key) ?? false
             const overdue = isOverdue(item)
             const canNudge = onNudge && overdue && !!label
+            const { col, cols } = columns.get(item.key) ?? { col: 0, cols: 1 }
 
             return (
               <div
                 key={item.key}
                 onClick={onOpenItem ? () => onOpenItem(item) : undefined}
                 className={[
-                  'absolute left-1 right-1 overflow-hidden rounded-md px-2 py-1 text-left text-xs',
+                  'absolute overflow-hidden rounded-md px-2 py-1 text-left text-xs',
                   onOpenItem ? 'cursor-pointer' : '',
                   overlapping ? 'ring-1 ring-inset ring-accent' : '',
                 ].join(' ')}
-                style={{ top, height, backgroundColor: `${item.color}33`, borderLeft: `3px solid ${item.color}` }}
+                style={{
+                  top,
+                  height,
+                  left: `calc(${(col / cols) * 100}% + 4px)`,
+                  width: `calc(${100 / cols}% - 8px)`,
+                  backgroundColor: `${item.color}33`,
+                  borderLeft: `3px solid ${item.color}`,
+                }}
               >
                 <span className="flex items-center gap-1">
                   <ItemCheckbox item={item} />
@@ -144,7 +212,7 @@ export function DayTimeline({ items, ownerLabel, onOpenItem, overlappingKeys, on
                   {overlapping && <span className="shrink-0 font-semibold text-accent">Overlap</span>}
                 </span>
                 <span className="block truncate text-ink-muted">
-                  {formatHour(Math.floor(minutesSinceMidnight(item.start) / 60))}
+                  {formatTime(item.start)}
                   {durationMinutes > MIN_BLOCK_MINUTES ? ` (${formatDuration(durationMinutes)})` : ''}
                   {label ? ` · ${label}` : ''}
                   {canNudge && (
