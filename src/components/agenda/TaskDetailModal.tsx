@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useProfiles } from '../../hooks/useProfiles'
+import { TaskComments, type TaskComment } from './TaskComments'
 
 interface ChecklistItem {
   id: string
@@ -28,6 +30,7 @@ interface TaskRow {
   owner_id: string
   checklist: ChecklistItem[]
   attachments: Attachment[]
+  comments: TaskComment[]
 }
 
 interface TaskDetailModalProps {
@@ -47,6 +50,7 @@ function toLocalInputValue(iso: string) {
 
 export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onDeleted }: TaskDetailModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const profiles = useProfiles()
 
   const [task, setTask] = useState<TaskRow | null>(null)
   const [loading, setLoading] = useState(true)
@@ -67,7 +71,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
     setLoading(true)
     const { data } = await supabase
       .from('tasks')
-      .select('id, title, description, due_date, end_at, course_id, visibility, owner_id, checklist, attachments')
+      .select('id, title, description, due_date, end_at, course_id, visibility, owner_id, checklist, attachments, comments')
       .eq('id', taskId)
       .single()
 
@@ -90,13 +94,25 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
     load()
   }, [load])
 
-  const canManage = !!task && task.owner_id === userId
+  // A shared task is co-managed (RLS lets either partner update/delete
+  // it) — private tasks are only ever fetchable by their owner anyway.
+  const canManage = !!task && (task.owner_id === userId || task.visibility === 'shared')
 
   function markDirty<T>(setter: (v: T) => void) {
     return (v: T) => {
       setter(v)
       setDirty(true)
     }
+  }
+
+  function nameFor(id: string) {
+    return id === userId ? 'You' : (profiles[id] ?? 'Partner')
+  }
+
+  async function updateComments(next: TaskComment[]) {
+    if (!task) return
+    setTask({ ...task, comments: next })
+    await supabase.from('tasks').update({ comments: next }).eq('id', task.id)
   }
 
   function addSubtask() {
@@ -357,6 +373,8 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
                 </div>
               )}
             </div>
+
+            <TaskComments comments={task.comments ?? []} onChange={updateComments} meId={userId} nameFor={nameFor} />
 
             <div className="flex items-center justify-between border-t border-border pt-3">
               {canManage ? (
