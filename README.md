@@ -7,7 +7,9 @@ Netlify. Installable to the home screen on iPad/iPhone/Mac.
 **Status: MVP Phase 1 complete**, now iterating post-launch. Auth, full database schema, and a
 responsive shell are done. Nav is four screens: **Today** (merged with Calendar — Day/Week/Month
 as an internal view toggle rather than separate nav items, with a due tasks/readings agenda,
-recurring events, a 7-day DateStrip, a Mine/Both filter dropdown, a clickable month/year picker on
+recurring events, a 7-day DateStrip, swipe left/right on Day or Month view to step to the next/
+previous day or month, pull-to-refresh (hand-rolled, since installed PWAs get no native browser
+pull-to-refresh), a Mine/Both filter dropdown, a clickable month/year picker on
 the heading for fast long-range navigation, and one quick-add for either a task or an event, opened
 from the nav bar's "+"; a task carries an optional Starts/Ends pair just like an event does (not
 just a single due date), rendering as a proportional block on the Day timeline when both are set;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
 import {
   addDays,
   addMonths,
@@ -27,6 +27,7 @@ import { WeekView } from '../components/calendar/WeekView'
 import { DayView } from '../components/calendar/DayView'
 import { DateStrip } from '../components/calendar/DateStrip'
 import { MonthYearPicker } from '../components/calendar/MonthYearPicker'
+import { PullToRefresh } from '../components/layout/PullToRefresh'
 import { TaskDetailModal } from '../components/agenda/TaskDetailModal'
 import { EventDetailModal } from '../components/agenda/EventDetailModal'
 import { TaskItem } from '../components/tasks/TaskItem'
@@ -175,6 +176,55 @@ export function Today() {
   // elsewhere) show up here without a manual reload.
   useRealtimeRefresh(REALTIME_TABLES, load)
 
+  // Swipe left/right on Day view to step to the day before/after — same
+  // result as tapping the next day in DateStrip, without needing that day
+  // to already be scrolled into view. Deliberately a plain day step, not
+  // shiftAnchor's week jump (the header ‹/› arrows use that; this mirrors
+  // DateStrip's day-at-a-time semantics instead). Month view gets its own
+  // copy below stepping months instead — small enough that sharing one
+  // helper isn't worth the indirection.
+  const daySwipeStart = useRef<{ x: number; y: number } | null>(null)
+  const SWIPE_MIN_DISTANCE = 60
+
+  function handleDaySwipeStart(e: TouchEvent) {
+    const t = e.touches[0]
+    daySwipeStart.current = { x: t.clientX, y: t.clientY }
+  }
+
+  function handleDaySwipeEnd(e: TouchEvent) {
+    const start = daySwipeStart.current
+    daySwipeStart.current = null
+    if (!start) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    // Requires the gesture to be clearly more horizontal than vertical —
+    // otherwise an ordinary vertical scroll through the timeline would
+    // occasionally read as a stray day change.
+    if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    // Swipe left (dx < 0) advances, swipe right goes back — the usual
+    // carousel/calendar convention.
+    setAnchorDate((d) => (dx > 0 ? subDays(d, 1) : addDays(d, 1)))
+  }
+
+  const monthSwipeStart = useRef<{ x: number; y: number } | null>(null)
+
+  function handleMonthSwipeStart(e: TouchEvent) {
+    const t = e.touches[0]
+    monthSwipeStart.current = { x: t.clientX, y: t.clientY }
+  }
+
+  function handleMonthSwipeEnd(e: TouchEvent) {
+    const start = monthSwipeStart.current
+    monthSwipeStart.current = null
+    if (!start) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    setAnchorDate((d) => (dx > 0 ? subMonths(d, 1) : addMonths(d, 1)))
+  }
+
   const toggleTask = useCallback(async (task: RawTask) => {
     setRawTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, completed_at: t.completed_at ? null : new Date().toISOString() } : t)),
@@ -296,174 +346,182 @@ export function Today() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-6 pb-24">
-      <div className="flex items-center justify-between gap-3">
-        <button
-          onClick={() => setPickerOpen(true)}
-          className="flex min-w-0 items-center gap-0.5 text-left text-xl font-semibold text-navy sm:text-2xl"
-        >
-          <span className="truncate">{periodLabel}</span>
-          <ChevronDownIcon className="h-4 w-4 shrink-0 text-ink-muted" />
-        </button>
-        <button
-          onClick={openSettings}
-          aria-label="Settings"
-          className="shrink-0 rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden"
-        >
-          <SettingsIcon className="h-5 w-5" />
-        </button>
-      </div>
-
-      {pickerOpen && (
-        <MonthYearPicker
-          anchorDate={anchorDate}
-          onSelect={(date) => {
-            setAnchorDate(date)
-            setView('month')
-            setPickerOpen(false)
-          }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
-
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-1.5">
+    <PullToRefresh onRefresh={load}>
+      <div className="mx-auto max-w-3xl space-y-4 p-6 pb-24">
+        <div className="flex items-center justify-between gap-3">
           <button
-            onClick={() => setAnchorDate(shiftAnchor(view, anchorDate, -1))}
-            className="shrink-0 rounded-lg border border-border px-2 py-1 text-sm text-ink-muted hover:text-ink"
-            aria-label="Previous"
+            onClick={() => setPickerOpen(true)}
+            className="flex min-w-0 items-center gap-0.5 text-left text-xl font-semibold text-navy sm:text-2xl"
           >
-            ‹
+            <span className="truncate">{periodLabel}</span>
+            <ChevronDownIcon className="h-4 w-4 shrink-0 text-ink-muted" />
           </button>
           <button
-            onClick={() => setAnchorDate(startOfDay(new Date()))}
-            className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-sm text-ink-muted hover:text-ink sm:px-3"
+            onClick={openSettings}
+            aria-label="Settings"
+            className="shrink-0 rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden"
           >
-            Today
-          </button>
-          <button
-            onClick={() => setAnchorDate(shiftAnchor(view, anchorDate, 1))}
-            className="shrink-0 rounded-lg border border-border px-2 py-1 text-sm text-ink-muted hover:text-ink"
-            aria-label="Next"
-          >
-            ›
+            <SettingsIcon className="h-5 w-5" />
           </button>
         </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
-            {(['day', 'week', 'month'] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className={['rounded-full px-2.5 py-1 font-medium capitalize sm:px-3', v === view ? 'bg-accent-bg text-accent' : 'text-ink-muted'].join(
-                  ' ',
-                )}
-              >
-                {v}
-              </button>
-            ))}
+  
+        {pickerOpen && (
+          <MonthYearPicker
+            anchorDate={anchorDate}
+            onSelect={(date) => {
+              setAnchorDate(date)
+              setView('month')
+              setPickerOpen(false)
+            }}
+            onClose={() => setPickerOpen(false)}
+          />
+        )}
+  
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <button
+              onClick={() => setAnchorDate(shiftAnchor(view, anchorDate, -1))}
+              className="shrink-0 rounded-lg border border-border px-2 py-1 text-sm text-ink-muted hover:text-ink"
+              aria-label="Previous"
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => setAnchorDate(startOfDay(new Date()))}
+              className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-sm text-ink-muted hover:text-ink sm:px-3"
+            >
+              Today
+            </button>
+            <button
+              onClick={() => setAnchorDate(shiftAnchor(view, anchorDate, 1))}
+              className="shrink-0 rounded-lg border border-border px-2 py-1 text-sm text-ink-muted hover:text-ink"
+              aria-label="Next"
+            >
+              ›
+            </button>
           </div>
-
-          <select
-            value={mineOnly ? 'mine' : 'both'}
-            onChange={(e) => setMineOnly(e.target.value === 'mine')}
-            aria-label="Filter by owner"
-            className="rounded-full border border-transparent bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-muted outline-none focus:border-accent"
-          >
-            <option value="both">Both</option>
-            <option value="mine">Mine</option>
-          </select>
+  
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
+              {(['day', 'week', 'month'] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={['rounded-full px-2.5 py-1 font-medium capitalize sm:px-3', v === view ? 'bg-accent-bg text-accent' : 'text-ink-muted'].join(
+                    ' ',
+                  )}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+  
+            <select
+              value={mineOnly ? 'mine' : 'both'}
+              onChange={(e) => setMineOnly(e.target.value === 'mine')}
+              aria-label="Filter by owner"
+              className="rounded-full border border-transparent bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-muted outline-none focus:border-accent"
+            >
+              <option value="both">Both</option>
+              <option value="mine">Mine</option>
+            </select>
+          </div>
         </div>
+  
+        {view === 'day' && <DateStrip selectedDate={anchorDate} onSelect={setAnchorDate} />}
+  
+        {view === 'day' && nudges.length > 0 && (
+          <section>
+            <h2 className="mb-2 text-sm font-semibold text-accent">Nudges</h2>
+            <ul className="space-y-2">
+              {nudges.map((n) => (
+                <li key={n.id} className="rounded-xl bg-accent-bg px-4 py-3 text-sm text-ink">
+                  {n.message ?? `Flagged a ${n.item_type} for you`}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+  
+        {view === 'day' && (undatedTasks.length > 0 || undatedReadings.length > 0) && (
+          <section>
+            <h2 className="mb-2 text-sm font-semibold text-ink-muted">No due date</h2>
+            <ul className="space-y-2">
+              {undatedTasks.map((task) => (
+                <TaskItem
+                  key={task.id}
+                  label={task.title}
+                  checked={!!task.completed_at}
+                  onToggle={() => toggleTask(task)}
+                  onClick={() => setOpenTaskId(task.id)}
+                />
+              ))}
+              {undatedReadings.map((r) => (
+                <TaskItem
+                  key={r.id}
+                  label={r.title}
+                  meta={r.courses?.name ?? undefined}
+                  checked={readingDone.has(r.id)}
+                  onToggle={() => toggleReading(r.id)}
+                />
+              ))}
+            </ul>
+          </section>
+        )}
+  
+        {view === 'month' && (
+          <div onTouchStart={handleMonthSwipeStart} onTouchEnd={handleMonthSwipeEnd}>
+            <MonthView
+              anchorDate={anchorDate}
+              items={agendaItems}
+              onSelectDay={(day) => {
+                setAnchorDate(day)
+                setView('day')
+              }}
+            />
+          </div>
+        )}
+        {view === 'week' && <WeekView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />}
+        {view === 'day' && (
+          <div onTouchStart={handleDaySwipeStart} onTouchEnd={handleDaySwipeEnd}>
+            <DayView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />
+          </div>
+        )}
+  
+        {openTaskId && user && (
+          <TaskDetailModal
+            taskId={openTaskId}
+            userId={user.id}
+            courses={courses}
+            onClose={() => setOpenTaskId(null)}
+            onSaved={() => {
+              setOpenTaskId(null)
+              load()
+            }}
+            onDeleted={() => {
+              setOpenTaskId(null)
+              load()
+            }}
+          />
+        )}
+  
+        {openEventId && user && (
+          <EventDetailModal
+            eventId={openEventId}
+            userId={user.id}
+            courses={courses}
+            onClose={() => setOpenEventId(null)}
+            onSaved={() => {
+              setOpenEventId(null)
+              load()
+            }}
+            onDeleted={() => {
+              setOpenEventId(null)
+              load()
+            }}
+          />
+        )}
       </div>
-
-      {view === 'day' && <DateStrip selectedDate={anchorDate} onSelect={setAnchorDate} />}
-
-      {view === 'day' && nudges.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold text-accent">Nudges</h2>
-          <ul className="space-y-2">
-            {nudges.map((n) => (
-              <li key={n.id} className="rounded-xl bg-accent-bg px-4 py-3 text-sm text-ink">
-                {n.message ?? `Flagged a ${n.item_type} for you`}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {view === 'day' && (undatedTasks.length > 0 || undatedReadings.length > 0) && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold text-ink-muted">No due date</h2>
-          <ul className="space-y-2">
-            {undatedTasks.map((task) => (
-              <TaskItem
-                key={task.id}
-                label={task.title}
-                checked={!!task.completed_at}
-                onToggle={() => toggleTask(task)}
-                onClick={() => setOpenTaskId(task.id)}
-              />
-            ))}
-            {undatedReadings.map((r) => (
-              <TaskItem
-                key={r.id}
-                label={r.title}
-                meta={r.courses?.name ?? undefined}
-                checked={readingDone.has(r.id)}
-                onToggle={() => toggleReading(r.id)}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {view === 'month' && (
-        <MonthView
-          anchorDate={anchorDate}
-          items={agendaItems}
-          onSelectDay={(day) => {
-            setAnchorDate(day)
-            setView('day')
-          }}
-        />
-      )}
-      {view === 'week' && <WeekView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />}
-      {view === 'day' && <DayView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />}
-
-      {openTaskId && user && (
-        <TaskDetailModal
-          taskId={openTaskId}
-          userId={user.id}
-          courses={courses}
-          onClose={() => setOpenTaskId(null)}
-          onSaved={() => {
-            setOpenTaskId(null)
-            load()
-          }}
-          onDeleted={() => {
-            setOpenTaskId(null)
-            load()
-          }}
-        />
-      )}
-
-      {openEventId && user && (
-        <EventDetailModal
-          eventId={openEventId}
-          userId={user.id}
-          courses={courses}
-          onClose={() => setOpenEventId(null)}
-          onSaved={() => {
-            setOpenEventId(null)
-            load()
-          }}
-          onDeleted={() => {
-            setOpenEventId(null)
-            load()
-          }}
-        />
-      )}
-    </div>
+    </PullToRefresh>
   )
 }
