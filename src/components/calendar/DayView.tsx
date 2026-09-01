@@ -7,8 +7,20 @@ interface DayViewProps {
   items: AgendaItem[]
   ownerLabel: (item: AgendaItem) => string | undefined
   onOpenItem?: (item: AgendaItem) => void
+  overlappingKeys?: Set<string>
+  onNudge?: (item: AgendaItem) => void
+  nudgedKeys?: Set<string>
 }
 
-export function DayView({ anchorDate, items, ownerLabel, onOpenItem }: DayViewProps) {
-  return <DayTimeline items={items.filter((i) => isSameDay(i.start, anchorDate))} ownerLabel={ownerLabel} onOpenItem={onOpenItem} />
+export function DayView({ anchorDate, items, ownerLabel, onOpenItem, overlappingKeys, onNudge, nudgedKeys }: DayViewProps) {
+  return (
+    <DayTimeline
+      items={items.filter((i) => isSameDay(i.start, anchorDate))}
+      ownerLabel={ownerLabel}
+      onOpenItem={onOpenItem}
+      overlappingKeys={overlappingKeys}
+      onNudge={onNudge}
+      nudgedKeys={nudgedKeys}
+    />
+  )
 }

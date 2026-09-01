@@ -14,9 +14,11 @@ the heading for fast long-range navigation, and one quick-add for either a task 
 from the nav bar's "+"; a task carries an optional Starts/Ends pair just like an event does (not
 just a single due date), rendering as a proportional block on the Day timeline when both are set;
 click a task to open a full edit/delete modal — start/end time, course, notes, subtasks, and file
-attachments via Supabase Storage), **Courses** (reading lists with per-user
-completion + class-prep/cold-call tracking, plus an "is_shared" classmates toggle so both partners
-can manage the same reading list), **Notes** (case briefs; Tiptap freeform notes with headings,
+attachments via Supabase Storage; two of your own timed items that overlap get an "Overlap" badge,
+and an overdue task shows a one-tap "Remind" button that nudges your partner without leaving the
+timeline), **Courses** (reading lists with per-user completion + class-prep/cold-call tracking, an
+"Add reading" form with a Bulk mode — one reading per line, paste a whole syllabus at once — plus
+an "is_shared" classmates toggle so both partners can manage the same reading list), **Notes** (case briefs; Tiptap freeform notes with headings,
 multicolor highlight, working lists, and images via Supabase Storage; search; tag-by-course;
 private/shared — a shared note is co-managed, so either partner can edit or delete it, and the
 detail view shows who last touched it and when), and **Us** (a Nudges/Thoughts sub-view toggle — nudges keep their two-way

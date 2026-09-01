@@ -17,10 +17,12 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
+import { usePartnerId } from '../hooks/usePartnerId'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { useSettings } from '../hooks/useSettings'
 import { ChevronDownIcon, SettingsIcon } from '../components/layout/icons'
 import { expandOccurrences } from '../lib/recurrence'
+import { getOverlappingItemIds } from '../lib/overlap'
 import type { AgendaItem } from '../components/calendar/types'
 import { MonthView } from '../components/calendar/MonthView'
 import { WeekView } from '../components/calendar/WeekView'
@@ -106,6 +108,7 @@ export function Today() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
   const profiles = useProfiles()
+  const partnerId = usePartnerId()
   const { openSettings } = useSettings()
 
   const [view, setView] = useState<ViewMode>('day')
@@ -117,6 +120,7 @@ export function Today() {
   const [readingDone, setReadingDone] = useState<Set<string>>(new Set())
   const [courses, setCourses] = useState<Course[]>([])
   const [nudges, setNudges] = useState<Nudge[]>([])
+  const [nudgedKeys, setNudgedKeys] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
   const [openEventId, setOpenEventId] = useState<string | null>(null)
@@ -313,6 +317,8 @@ export function Today() {
     return user ? (mineOnly ? all.filter((i) => i.ownerId === user.id) : all) : all
   }, [rawEvents, rawTasks, rawReadings, readingDone, view, anchorDate, mineOnly, user, toggleTask, toggleReading])
 
+  const overlappingKeys = useMemo(() => getOverlappingItemIds(agendaItems), [agendaItems])
+
   function openItem(item: AgendaItem) {
     if (item.kind === 'event') setOpenEventId(item.eventId)
     else if (item.kind === 'task') setOpenTaskId(item.eventId)
@@ -321,6 +327,19 @@ export function Today() {
   function ownerLabel(item: AgendaItem) {
     if (!user || item.ownerId === user.id) return undefined
     return profiles[item.ownerId]
+  }
+
+  async function nudgeTask(item: AgendaItem) {
+    if (!user || !householdId || !partnerId) return
+    setNudgedKeys((prev) => new Set(prev).add(item.key))
+    await supabase.from('nudges').insert({
+      household_id: householdId,
+      from_user_id: user.id,
+      to_user_id: partnerId,
+      item_type: 'task',
+      item_id: item.eventId,
+      message: `Reminder: "${item.title}" is overdue`,
+    })
   }
 
   const undatedTasks = rawTasks.filter((t) => !t.due_date && (!mineOnly || t.owner_id === user?.id))
@@ -484,7 +503,15 @@ export function Today() {
         {view === 'week' && <WeekView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />}
         {view === 'day' && (
           <div onTouchStart={handleDaySwipeStart} onTouchEnd={handleDaySwipeEnd}>
-            <DayView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />
+            <DayView
+              anchorDate={anchorDate}
+              items={agendaItems}
+              ownerLabel={ownerLabel}
+              onOpenItem={openItem}
+              overlappingKeys={overlappingKeys}
+              onNudge={nudgeTask}
+              nudgedKeys={nudgedKeys}
+            />
           </div>
         )}
   

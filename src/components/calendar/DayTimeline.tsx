@@ -1,9 +1,15 @@
+import { formatDuration } from '../../lib/duration'
 import type { AgendaItem } from './types'
 
 interface DayTimelineProps {
   items: AgendaItem[]
   ownerLabel: (item: AgendaItem) => string | undefined
   onOpenItem?: (item: AgendaItem) => void
+  /** Item keys whose time span collides with another of the same owner's items. */
+  overlappingKeys?: Set<string>
+  /** Nudge the item's owner (a partner's overdue task) — omit to hide the affordance entirely. */
+  onNudge?: (item: AgendaItem) => void
+  nudgedKeys?: Set<string>
 }
 
 const PX_PER_MINUTE = 1
@@ -23,6 +29,10 @@ function formatHour(hour: number) {
   return `${h}${suffix}`
 }
 
+function isOverdue(item: AgendaItem) {
+  return item.kind === 'task' && !item.completed && item.start.getTime() < Date.now()
+}
+
 function ItemCheckbox({ item }: { item: AgendaItem }) {
   if (item.kind === 'event' || !item.onToggle) return null
   return (
@@ -36,7 +46,7 @@ function ItemCheckbox({ item }: { item: AgendaItem }) {
   )
 }
 
-export function DayTimeline({ items, ownerLabel, onOpenItem }: DayTimelineProps) {
+export function DayTimeline({ items, ownerLabel, onOpenItem, overlappingKeys, onNudge, nudgedKeys }: DayTimelineProps) {
   const timed = items.filter((i) => i.kind !== 'reading')
   const untimed = items.filter((i) => i.kind === 'reading')
 
@@ -105,30 +115,51 @@ export function DayTimeline({ items, ownerLabel, onOpenItem }: DayTimelineProps)
 
           {timed.map((item) => {
             const top = (minutesSinceMidnight(item.start) - rangeStartMinute) * PX_PER_MINUTE
+            const durationMinutes = Math.round((blockEnd(item).getTime() - item.start.getTime()) / 60000)
             const height = Math.max(
               (minutesSinceMidnight(blockEnd(item)) - minutesSinceMidnight(item.start)) * PX_PER_MINUTE,
               MIN_BLOCK_MINUTES * PX_PER_MINUTE,
             )
             const label = ownerLabel(item)
+            const overlapping = overlappingKeys?.has(item.key) ?? false
+            const overdue = isOverdue(item)
+            const canNudge = onNudge && overdue && !!label
 
             return (
               <div
                 key={item.key}
                 onClick={onOpenItem ? () => onOpenItem(item) : undefined}
-                className={['absolute left-1 right-1 overflow-hidden rounded-md px-2 py-1 text-left text-xs', onOpenItem ? 'cursor-pointer' : ''].join(
-                  ' ',
-                )}
+                className={[
+                  'absolute left-1 right-1 overflow-hidden rounded-md px-2 py-1 text-left text-xs',
+                  onOpenItem ? 'cursor-pointer' : '',
+                  overlapping ? 'ring-1 ring-inset ring-accent' : '',
+                ].join(' ')}
                 style={{ top, height, backgroundColor: `${item.color}33`, borderLeft: `3px solid ${item.color}` }}
               >
                 <span className="flex items-center gap-1">
                   <ItemCheckbox item={item} />
-                  <span className={['truncate font-medium', item.completed ? 'text-ink-muted line-through' : 'text-ink'].join(' ')}>
+                  <span className={['min-w-0 flex-1 truncate font-medium', item.completed ? 'text-ink-muted line-through' : 'text-ink'].join(' ')}>
                     {item.title}
                   </span>
+                  {overlapping && <span className="shrink-0 font-semibold text-accent">Overlap</span>}
                 </span>
                 <span className="block truncate text-ink-muted">
                   {formatHour(Math.floor(minutesSinceMidnight(item.start) / 60))}
+                  {durationMinutes > MIN_BLOCK_MINUTES ? ` (${formatDuration(durationMinutes)})` : ''}
                   {label ? ` · ${label}` : ''}
+                  {canNudge && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onNudge(item)
+                      }}
+                      disabled={nudgedKeys?.has(item.key)}
+                      className="ml-1.5 font-semibold text-accent underline disabled:no-underline disabled:text-ink-muted"
+                    >
+                      {nudgedKeys?.has(item.key) ? 'Reminded' : 'Remind'}
+                    </button>
+                  )}
                 </span>
               </div>
             )
