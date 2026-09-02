@@ -106,19 +106,19 @@ export function BudgetView({ householdId, userId, partnerId, partnerLabel, trans
               }}
               className="text-xs text-ink-muted hover:text-ink"
             >
-              {monthlyLimit != null ? `of $${monthlyLimit.toFixed(2)} limit` : 'Set a limit'}
+              {monthlyLimit != null ? `of ₱${monthlyLimit.toFixed(2)} limit` : 'Set a limit'}
             </button>
           )}
         </div>
 
-        <p className="mt-1 text-2xl font-semibold text-navy">${spentThisMonth.toFixed(2)}</p>
+        <p className="mt-1 text-2xl font-semibold text-navy">₱{spentThisMonth.toFixed(2)}</p>
 
         {monthlyLimit != null && (
           <>
             <div className="mt-2 h-1.5 rounded-full bg-bg">
               <div className={['h-1.5 rounded-full', overLimit ? 'bg-navy' : 'bg-accent'].join(' ')} style={{ width: `${progressPct}%` }} />
             </div>
-            {overLimit && <p className="mt-1 text-xs text-ink-muted">Over by ${(spentThisMonth - monthlyLimit).toFixed(2)}</p>}
+            {overLimit && <p className="mt-1 text-xs text-ink-muted">Over by ₱{(spentThisMonth - monthlyLimit).toFixed(2)}</p>}
           </>
         )}
       </div>
@@ -129,11 +129,11 @@ export function BudgetView({ householdId, userId, partnerId, partnerLabel, trans
             <p className="text-ink-muted">Settled up</p>
           ) : balance > 0 ? (
             <p className="text-ink">
-              You owe {partnerLabel} <span className="font-semibold">${balance.toFixed(2)}</span>
+              You owe {partnerLabel} <span className="font-semibold">₱{balance.toFixed(2)}</span>
             </p>
           ) : (
             <p className="text-ink">
-              {partnerLabel} owes you <span className="font-semibold">${Math.abs(balance).toFixed(2)}</span>
+              {partnerLabel} owes you <span className="font-semibold">₱{Math.abs(balance).toFixed(2)}</span>
             </p>
           )}
         </div>
@@ -146,7 +146,7 @@ export function BudgetView({ householdId, userId, partnerId, partnerLabel, trans
             <div key={cat} className="space-y-1">
               <div className="flex items-center justify-between text-xs text-ink">
                 <span>{cat}</span>
-                <span className="text-ink-muted">${amt.toFixed(2)}</span>
+                <span className="text-ink-muted">₱{amt.toFixed(2)}</span>
               </div>
               <div className="h-1.5 rounded-full bg-bg">
                 <div className="h-1.5 rounded-full bg-accent" style={{ width: `${spentThisMonth ? (amt / spentThisMonth) * 100 : 0}%` }} />
@@ -172,7 +172,7 @@ export function BudgetView({ householdId, userId, partnerId, partnerLabel, trans
                     {t.description && <p className="truncate text-xs text-ink-muted">{t.description}</p>}
                   </div>
                   <span className={['shrink-0 text-sm font-semibold', t.type === 'income' ? 'text-accent' : 'text-ink'].join(' ')}>
-                    {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
+                    {t.type === 'income' ? '+' : '-'}₱{t.amount.toFixed(2)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-ink-muted">
