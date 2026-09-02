@@ -10,7 +10,7 @@ import { NudgeRow } from '../components/us/NudgeRow'
 import { ThoughtComposer } from '../components/us/ThoughtComposer'
 import { ThoughtCard } from '../components/us/ThoughtCard'
 import { useSettings } from '../hooks/useSettings'
-import { SettingsIcon } from '../components/layout/icons'
+import { SettingsIcon, ChevronDownIcon } from '../components/layout/icons'
 
 const REALTIME_TABLES = ['nudges', 'thoughts']
 
@@ -45,6 +45,7 @@ interface Thought {
   body: string
   visibility: 'private' | 'shared'
   comments: ThoughtComment[]
+  archived: boolean
   created_at: string
 }
 
@@ -61,6 +62,7 @@ export function Us() {
   const [readings, setReadings] = useState<Item[]>([])
   const [thoughts, setThoughts] = useState<Thought[]>([])
   const [addedToToday, setAddedToToday] = useState<Set<string>>(new Set())
+  const [archivedOpen, setArchivedOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -74,7 +76,7 @@ export function Us() {
       }),
       supabase.from('tasks').select('id, title'),
       supabase.from('reading_items').select('id, title'),
-      supabase.from('thoughts').select('id, owner_id, body, visibility, comments, created_at').order('created_at', { ascending: false }),
+      supabase.from('thoughts').select('id, owner_id, body, visibility, comments, archived, created_at').order('created_at', { ascending: false }),
     ])
 
     const members = (membersRes.data ?? []) as { user_id: string }[]
@@ -122,8 +124,15 @@ export function Us() {
     await supabase.from('thoughts').update({ body, updated_at: new Date().toISOString() }).eq('id', thoughtId)
   }
 
+  // Reversible, unlike deleteThought below — a thought just moves into the
+  // collapsed Archived section instead of being lost outright.
+  async function archiveThought(thoughtId: string, archived: boolean) {
+    setThoughts((prev) => prev.map((t) => (t.id === thoughtId ? { ...t, archived } : t)))
+    await supabase.from('thoughts').update({ archived, updated_at: new Date().toISOString() }).eq('id', thoughtId)
+  }
+
   async function deleteThought(thoughtId: string) {
-    if (!window.confirm('Unpin this thought?')) return
+    if (!window.confirm("Delete this thought permanently? This can't be undone.")) return
     setThoughts((prev) => prev.filter((t) => t.id !== thoughtId))
     await supabase.from('thoughts').delete().eq('id', thoughtId)
   }
@@ -141,12 +150,21 @@ export function Us() {
 
   async function addThoughtToToday(thought: Thought) {
     if (!user || !householdId) return
+    // Carry any existing comments over as checklist items, attributed by
+    // author — otherwise that context is stranded on the pin once the task
+    // is what people are actually looking at.
+    const checklist = thought.comments.map((c) => ({
+      id: crypto.randomUUID(),
+      text: `${nameFor(c.authorId)}: ${c.body}`,
+      done: false,
+    }))
     await supabase.from('tasks').insert({
       household_id: householdId,
       owner_id: user.id,
       title: thought.body,
       due_date: endOfDay(new Date()).toISOString(),
       visibility: thought.visibility,
+      checklist,
     })
     setAddedToToday((prev) => new Set(prev).add(thought.id))
   }
@@ -156,6 +174,8 @@ export function Us() {
   }
 
   const partnerLabel = partnerId ? (profiles[partnerId] ?? 'partner') : 'partner'
+  const activeThoughts = thoughts.filter((t) => !t.archived)
+  const archivedThoughts = thoughts.filter((t) => t.archived)
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6">
@@ -224,11 +244,11 @@ export function Us() {
         <div className="space-y-3">
           <ThoughtComposer householdId={householdId} userId={user.id} onPosted={load} />
 
-          {thoughts.length === 0 ? (
+          {activeThoughts.length === 0 ? (
             <p className="text-sm text-ink-muted">Nothing pinned yet.</p>
           ) : (
             <ul className="space-y-2">
-              {thoughts.map((t) => (
+              {activeThoughts.map((t) => (
                 <ThoughtCard
                   key={t.id}
                   body={t.body}
@@ -237,16 +257,57 @@ export function Us() {
                   createdAt={t.created_at}
                   comments={t.comments}
                   isOwn={t.owner_id === user.id}
+                  archived={false}
                   nameFor={nameFor}
                   onEdit={(body) => editThought(t.id, body)}
-                  onDelete={() => deleteThought(t.id)}
                   onToggleShare={() => toggleShareThought(t)}
                   onAddComment={(body) => addThoughtComment(t.id, body)}
                   onAddToToday={() => addThoughtToToday(t)}
                   addedToToday={addedToToday.has(t.id)}
+                  onArchive={() => archiveThought(t.id, true)}
+                  onUnarchive={() => archiveThought(t.id, false)}
+                  onDelete={() => deleteThought(t.id)}
                 />
               ))}
             </ul>
+          )}
+
+          {archivedThoughts.length > 0 && (
+            <div>
+              <button
+                onClick={() => setArchivedOpen((v) => !v)}
+                className="flex w-full items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-xs text-ink-muted"
+              >
+                <span>Archived ({archivedThoughts.length})</span>
+                <ChevronDownIcon className={['h-4 w-4 transition-transform', archivedOpen ? 'rotate-180' : ''].join(' ')} />
+              </button>
+
+              {archivedOpen && (
+                <ul className="mt-2 space-y-2">
+                  {archivedThoughts.map((t) => (
+                    <ThoughtCard
+                      key={t.id}
+                      body={t.body}
+                      visibility={t.visibility}
+                      ownerId={t.owner_id}
+                      createdAt={t.created_at}
+                      comments={t.comments}
+                      isOwn={t.owner_id === user.id}
+                      archived
+                      nameFor={nameFor}
+                      onEdit={(body) => editThought(t.id, body)}
+                      onToggleShare={() => toggleShareThought(t)}
+                      onAddComment={(body) => addThoughtComment(t.id, body)}
+                      onAddToToday={() => addThoughtToToday(t)}
+                      addedToToday={addedToToday.has(t.id)}
+                      onArchive={() => archiveThought(t.id, true)}
+                      onUnarchive={() => archiveThought(t.id, false)}
+                      onDelete={() => deleteThought(t.id)}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
         </div>
       )}

@@ -15,13 +15,16 @@ interface ThoughtCardProps {
   createdAt: string
   comments: Comment[]
   isOwn: boolean
+  archived: boolean
   nameFor: (userId: string) => string
   onEdit: (body: string) => void
-  onDelete: () => void
   onToggleShare: () => void
   onAddComment: (body: string) => void
   onAddToToday: () => void
   addedToToday: boolean
+  onArchive: () => void
+  onUnarchive: () => void
+  onDelete: () => void
 }
 
 export function ThoughtCard({
@@ -31,13 +34,16 @@ export function ThoughtCard({
   createdAt,
   comments,
   isOwn,
+  archived,
   nameFor,
   onEdit,
-  onDelete,
   onToggleShare,
   onAddComment,
   onAddToToday,
   addedToToday,
+  onArchive,
+  onUnarchive,
+  onDelete,
 }: ThoughtCardProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(body)
@@ -58,7 +64,7 @@ export function ThoughtCard({
   }
 
   return (
-    <li className="space-y-2 rounded-xl border border-border bg-surface px-4 py-3">
+    <li className={['space-y-2 rounded-xl border border-border bg-surface px-4 py-3', archived ? 'opacity-70' : ''].join(' ')}>
       {editing ? (
         <textarea
           value={draft}
@@ -81,14 +87,27 @@ export function ThoughtCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={onAddToToday}
-          disabled={addedToToday}
-          className="rounded-full bg-accent-bg px-3 py-1 text-xs font-medium text-accent disabled:opacity-50"
-        >
-          {addedToToday ? '✓ Added to Today' : 'Add to Today'}
-        </button>
+        {!archived && (
+          <button
+            onClick={onAddToToday}
+            disabled={addedToToday}
+            className="rounded-full bg-accent-bg px-3 py-1 text-xs font-medium text-accent disabled:opacity-50"
+          >
+            {addedToToday ? '✓ Added to Today' : 'Add to Today'}
+          </button>
+        )}
+        {isOwn && archived && (
+          <>
+            <button onClick={onUnarchive} className="text-xs text-ink-muted hover:text-ink">
+              Unarchive
+            </button>
+            <button onClick={onDelete} className="text-xs text-ink-muted hover:text-accent">
+              Delete
+            </button>
+          </>
+        )}
         {isOwn &&
+          !archived &&
           (editing ? (
             <>
               <button onClick={saveEdit} className="text-xs font-medium text-ink-muted hover:text-ink">
@@ -112,8 +131,8 @@ export function ThoughtCard({
               <button onClick={onToggleShare} className="text-xs text-ink-muted hover:text-ink">
                 {visibility === 'shared' ? 'Make private' : 'Share'}
               </button>
-              <button onClick={onDelete} className="text-xs text-ink-muted hover:text-accent">
-                Unpin
+              <button onClick={onArchive} className="text-xs text-ink-muted hover:text-accent">
+                Archive
               </button>
             </>
           ))}
@@ -129,28 +148,30 @@ export function ThoughtCard({
         </ul>
       )}
 
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={commentDraft}
-          onChange={(e) => setCommentDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              submitComment()
-            }
-          }}
-          placeholder="Add a thought…"
-          className="min-w-0 flex-1 rounded-lg border border-border bg-bg px-2 py-1 text-xs text-ink outline-none focus:border-accent"
-        />
-        <button
-          onClick={submitComment}
-          disabled={!commentDraft.trim()}
-          className="rounded-lg bg-bg px-3 py-1 text-xs font-medium text-ink-muted disabled:opacity-50"
-        >
-          Add
-        </button>
-      </div>
+      {!archived && (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={commentDraft}
+            onChange={(e) => setCommentDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                submitComment()
+              }
+            }}
+            placeholder="Add a thought…"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-bg px-2 py-1 text-xs text-ink outline-none focus:border-accent"
+          />
+          <button
+            onClick={submitComment}
+            disabled={!commentDraft.trim()}
+            className="rounded-lg bg-bg px-3 py-1 text-xs font-medium text-ink-muted disabled:opacity-50"
+          >
+            Add
+          </button>
+        </div>
+      )}
     </li>
   )
 }
