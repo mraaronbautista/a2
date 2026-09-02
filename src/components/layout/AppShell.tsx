@@ -9,11 +9,12 @@ import { SettingsContext } from '../../hooks/useSettings'
 import { QuickAddContext, type QuickAddHandler } from '../../hooks/useQuickAdd'
 import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
-import { NotesIcon, TimelineIcon, UsIcon } from './icons'
+import { NotesIcon, TimelineIcon, BudgetIcon, UsIcon } from './icons'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Timeline', Icon: TimelineIcon },
   { to: '/notes', label: 'Notes', Icon: NotesIcon },
+  { to: '/budget', label: 'Budget', Icon: BudgetIcon },
   { to: '/us', label: 'Us', Icon: UsIcon },
 ]
 

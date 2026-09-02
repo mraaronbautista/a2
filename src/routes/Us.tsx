@@ -4,19 +4,17 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
-import { usePartnerId } from '../hooks/usePartnerId'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { ThoughtComposer } from '../components/us/ThoughtComposer'
 import { ThoughtCard } from '../components/us/ThoughtCard'
-import { BudgetView } from '../components/us/BudgetView'
-import { BudgetEntryModal, type BudgetTransaction } from '../components/us/BudgetEntryModal'
-import { BudgetCategoryLimitsModal } from '../components/us/BudgetCategoryLimitsModal'
+import { GoalModal, type Goal } from '../components/us/GoalModal'
+import { TaskItem } from '../components/tasks/TaskItem'
 import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon, ChevronDownIcon } from '../components/layout/icons'
 
-const REALTIME_TABLES = ['thoughts', 'budget_transactions', 'budget_settings']
-const SUBVIEW_ORDER = ['budget', 'thoughts'] as const
+const REALTIME_TABLES = ['thoughts', 'goals']
+const SUBVIEW_ORDER = ['goals', 'thoughts'] as const
 type SubView = (typeof SUBVIEW_ORDER)[number]
 const SWIPE_MIN_DISTANCE = 60
 
@@ -37,21 +35,24 @@ interface Thought {
   created_at: string
 }
 
+function formatTargetDate(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 export function Us() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
   const profiles = useProfiles()
-  const partnerId = usePartnerId()
   const { openSettings } = useSettings()
 
-  const [subView, setSubView] = useState<SubView>('budget')
+  const [subView, setSubView] = useState<SubView>('goals')
   const [thoughts, setThoughts] = useState<Thought[]>([])
   const [addedToToday, setAddedToToday] = useState<Set<string>>(new Set())
   const [archivedOpen, setArchivedOpen] = useState(false)
-  const [budgetTransactions, setBudgetTransactions] = useState<BudgetTransaction[]>([])
-  const [categoryLimits, setCategoryLimits] = useState<Record<string, number>>({})
-  const [budgetEntry, setBudgetEntry] = useState<BudgetTransaction | 'new' | null>(null)
-  const [categoryLimitsOpen, setCategoryLimitsOpen] = useState(false)
+  const [goals, setGoals] = useState<Goal[]>([])
+  const [goalModal, setGoalModal] = useState<Goal | 'new' | null>(null)
+  const [completedGoalsOpen, setCompletedGoalsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const thoughtComposerRef = useRef<HTMLTextAreaElement>(null)
 
@@ -59,18 +60,13 @@ export function Us() {
     if (!householdId || !user) return
     setLoading(true)
 
-    const [thoughtsRes, budgetRes, budgetSettingsRes] = await Promise.all([
+    const [thoughtsRes, goalsRes] = await Promise.all([
       supabase.from('thoughts').select('id, owner_id, body, visibility, comments, archived, created_at').order('created_at', { ascending: false }),
-      supabase
-        .from('budget_transactions')
-        .select('id, type, amount, category, description, paid_by, split_mode, occurred_on')
-        .order('occurred_on', { ascending: false }),
-      supabase.from('budget_settings').select('category_limits').eq('household_id', householdId).maybeSingle(),
+      supabase.from('goals').select('id, owner_id, title, target_date, visibility, completed_at').order('created_at', { ascending: false }),
     ])
 
     setThoughts((thoughtsRes.data ?? []) as Thought[])
-    setBudgetTransactions((budgetRes.data ?? []) as BudgetTransaction[])
-    setCategoryLimits((budgetSettingsRes.data as { category_limits: Record<string, number> } | null)?.category_limits ?? {})
+    setGoals((goalsRes.data ?? []) as Goal[])
     setLoading(false)
   }, [householdId, user])
 
@@ -83,6 +79,12 @@ export function Us() {
   function nameFor(userId: string) {
     if (userId === user?.id) return 'You'
     return profiles[userId] ?? 'Partner'
+  }
+
+  async function toggleGoal(goal: Goal) {
+    const completed_at = goal.completed_at ? null : new Date().toISOString()
+    setGoals((prev) => prev.map((g) => (g.id === goal.id ? { ...g, completed_at } : g)))
+    await supabase.from('goals').update({ completed_at }).eq('id', goal.id)
   }
 
   async function editThought(thoughtId: string, body: string) {
@@ -158,21 +160,12 @@ export function Us() {
     setSubView(SUBVIEW_ORDER[nextIdx])
   }
 
-  function closeBudgetEntry() {
-    setBudgetEntry(null)
-  }
-
-  function saveBudgetEntry() {
-    setBudgetEntry(null)
-    load()
-  }
-
-  // The persistent "+" in AppShell adds a transaction on Budget; Thoughts
-  // has no separate "add" modal (the composer's always visible), so it
-  // just focuses that instead.
+  // The persistent "+" in AppShell opens a new goal on Goals; Thoughts has
+  // no separate "add" modal (the composer's always visible), so it just
+  // focuses that instead.
   useQuickAdd(
-    subView === 'budget'
-      ? () => setBudgetEntry('new')
+    subView === 'goals'
+      ? () => setGoalModal('new')
       : () => {
           thoughtComposerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
           thoughtComposerRef.current?.focus()
@@ -183,9 +176,18 @@ export function Us() {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
   }
 
-  const partnerLabel = partnerId ? (profiles[partnerId] ?? 'partner') : 'partner'
   const activeThoughts = thoughts.filter((t) => !t.archived)
   const archivedThoughts = thoughts.filter((t) => t.archived)
+
+  const activeGoals = goals
+    .filter((g) => !g.completed_at)
+    .sort((a, b) => {
+      if (!a.target_date && !b.target_date) return 0
+      if (!a.target_date) return 1
+      if (!b.target_date) return -1
+      return a.target_date.localeCompare(b.target_date)
+    })
+  const completedGoals = goals.filter((g) => g.completed_at)
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6">
@@ -201,7 +203,7 @@ export function Us() {
       <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
         {(
           [
-            ['budget', 'Budget'],
+            ['goals', 'Goals'],
             ['thoughts', 'Thoughts'],
           ] as const
         ).map(([value, label]) => (
@@ -216,16 +218,53 @@ export function Us() {
       </div>
 
       <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd}>
-        {subView === 'budget' && user && householdId && (
-          <BudgetView
-            userId={user.id}
-            partnerId={partnerId}
-            partnerLabel={partnerLabel}
-            transactions={budgetTransactions}
-            categoryLimits={categoryLimits}
-            onEdit={(t) => setBudgetEntry(t)}
-            onEditLimits={() => setCategoryLimitsOpen(true)}
-          />
+        {subView === 'goals' && (
+          <div className="space-y-3">
+            {activeGoals.length === 0 ? (
+              <p className="text-sm text-ink-muted">No goals yet — what are we working toward?</p>
+            ) : (
+              <ul className="space-y-2">
+                {activeGoals.map((g) => (
+                  <TaskItem
+                    key={g.id}
+                    label={g.title}
+                    meta={g.visibility === 'private' ? 'Just yours' : undefined}
+                    dueLabel={g.target_date ? formatTargetDate(g.target_date) : undefined}
+                    checked={false}
+                    onToggle={() => toggleGoal(g)}
+                    onClick={() => setGoalModal(g)}
+                  />
+                ))}
+              </ul>
+            )}
+
+            {completedGoals.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setCompletedGoalsOpen((v) => !v)}
+                  className="flex w-full items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-xs text-ink-muted"
+                >
+                  <span>Achieved ({completedGoals.length})</span>
+                  <ChevronDownIcon className={['h-4 w-4 transition-transform', completedGoalsOpen ? 'rotate-180' : ''].join(' ')} />
+                </button>
+
+                {completedGoalsOpen && (
+                  <ul className="mt-2 space-y-2">
+                    {completedGoals.map((g) => (
+                      <TaskItem
+                        key={g.id}
+                        label={g.title}
+                        dueLabel={g.target_date ? formatTargetDate(g.target_date) : undefined}
+                        checked
+                        onToggle={() => toggleGoal(g)}
+                        onClick={() => setGoalModal(g)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {subView === 'thoughts' && user && householdId && (
@@ -301,26 +340,18 @@ export function Us() {
         )}
       </div>
 
-      {budgetEntry && householdId && user && (
-        <BudgetEntryModal
+      {goalModal && householdId && user && (
+        <GoalModal
           householdId={householdId}
           userId={user.id}
-          partnerId={partnerId}
-          partnerLabel={partnerLabel}
-          entry={budgetEntry === 'new' ? null : budgetEntry}
-          onClose={closeBudgetEntry}
-          onSaved={saveBudgetEntry}
-          onDeleted={saveBudgetEntry}
-        />
-      )}
-
-      {categoryLimitsOpen && householdId && (
-        <BudgetCategoryLimitsModal
-          householdId={householdId}
-          categoryLimits={categoryLimits}
-          onClose={() => setCategoryLimitsOpen(false)}
+          goal={goalModal === 'new' ? null : goalModal}
+          onClose={() => setGoalModal(null)}
           onSaved={() => {
-            setCategoryLimitsOpen(false)
+            setGoalModal(null)
+            load()
+          }}
+          onDeleted={() => {
+            setGoalModal(null)
             load()
           }}
         />

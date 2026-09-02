@@ -28,6 +28,18 @@ export function NotesIcon({ className }: IconProps) {
   )
 }
 
+// A wallet with a coin slot circle — reads as "money" distinct from
+// Shopping/Notes glyphs elsewhere in the app.
+export function BudgetIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
+      <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2" />
+      <path d="M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-4" />
+      <path d="M16 12h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4a2 2 0 0 1 0-4Z" />
+    </svg>
+  )
+}
+
 export function UsIcon({ className }: IconProps) {
   // Hand-built symmetric about x=12 (each control point mirrored exactly,
   // 24-x), rather than eyeballed coordinates — those read as visibly
