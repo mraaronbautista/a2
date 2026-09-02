@@ -46,7 +46,7 @@ export function BudgetEntryModal({
   const [category, setCategory] = useState(entry?.category ?? '')
   const [description, setDescription] = useState(entry?.description ?? '')
   const [paidBy, setPaidBy] = useState(entry?.paid_by ?? userId)
-  const [splitMode, setSplitMode] = useState<'shared' | 'personal'>(entry?.split_mode ?? 'shared')
+  const [splitMode, setSplitMode] = useState<'shared' | 'personal'>(entry?.split_mode ?? 'personal')
   const [occurredOn, setOccurredOn] = useState(entry?.occurred_on ?? todayDateString())
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -177,8 +177,8 @@ export function BudgetEntryModal({
           <div className="flex gap-1 text-xs">
             {(
               [
-                ['shared', 'Split 50/50'],
                 ['personal', 'Personal, not split'],
+                ['shared', 'Split 50/50'],
               ] as const
             ).map(([value, label]) => (
               <button
