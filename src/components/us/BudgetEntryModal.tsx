@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { BUDGET_CATEGORIES } from '../../lib/budgetCategories'
 
 export interface BudgetTransaction {
   id: string
@@ -17,7 +18,6 @@ interface BudgetEntryModalProps {
   userId: string
   partnerId: string | null
   partnerLabel: string
-  categories: string[]
   entry: BudgetTransaction | null
   onClose: () => void
   onSaved: () => void
@@ -35,7 +35,6 @@ export function BudgetEntryModal({
   userId,
   partnerId,
   partnerLabel,
-  categories,
   entry,
   onClose,
   onSaved,
@@ -44,6 +43,7 @@ export function BudgetEntryModal({
   const [type, setType] = useState<'income' | 'expense'>(entry?.type ?? 'expense')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
   const [category, setCategory] = useState(entry?.category ?? '')
+  const [customMode, setCustomMode] = useState(() => !!entry && !BUDGET_CATEGORIES.some((c) => c.label === entry.category))
   const [description, setDescription] = useState(entry?.description ?? '')
   const [paidBy, setPaidBy] = useState(entry?.paid_by ?? userId)
   const [splitMode, setSplitMode] = useState<'shared' | 'personal'>(entry?.split_mode ?? 'personal')
@@ -133,19 +133,51 @@ export function BudgetEntryModal({
           />
         </div>
 
-        <input
-          type="text"
-          list="budget-categories"
-          placeholder="Category (e.g. Rent, Groceries)"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-        />
-        <datalist id="budget-categories">
-          {categories.map((c) => (
-            <option key={c} value={c} />
+        <div className="grid grid-cols-3 gap-1.5">
+          {BUDGET_CATEGORIES.map((c) => (
+            <button
+              key={c.label}
+              type="button"
+              onClick={() => {
+                setCustomMode(false)
+                setCategory(c.label)
+              }}
+              className={[
+                'flex flex-col items-center gap-1 rounded-lg border px-1.5 py-2 text-center text-[11px] font-medium',
+                !customMode && category === c.label ? 'border-accent bg-accent-bg text-accent' : 'border-border bg-bg text-ink-muted',
+              ].join(' ')}
+            >
+              <span className="text-lg leading-none">{c.icon}</span>
+              {c.label}
+            </button>
           ))}
-        </datalist>
+          <button
+            type="button"
+            onClick={() => {
+              if (!customMode) setCategory('')
+              setCustomMode(true)
+            }}
+            className={[
+              'flex flex-col items-center gap-1 rounded-lg border px-1.5 py-2 text-center text-[11px] font-medium',
+              customMode ? 'border-accent bg-accent-bg text-accent' : 'border-border bg-bg text-ink-muted',
+            ].join(' ')}
+          >
+            <span className="text-lg leading-none">✏️</span>
+            Custom
+          </button>
+        </div>
+
+        {customMode && (
+          <input
+            type="text"
+            required
+            autoFocus
+            placeholder="Category name"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+          />
+        )}
 
         <input
           type="text"
@@ -212,7 +244,11 @@ export function BudgetEntryModal({
             <button type="button" onClick={onClose} className="px-3 py-2 text-sm text-ink-muted">
               Cancel
             </button>
-            <button type="submit" disabled={saving || !amount} className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-bg disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={saving || !amount || !category.trim()}
+              className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-bg disabled:opacity-50"
+            >
               {saving ? 'Saving…' : 'Save'}
             </button>
           </div>

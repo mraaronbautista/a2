@@ -11,6 +11,7 @@ import { ThoughtComposer } from '../components/us/ThoughtComposer'
 import { ThoughtCard } from '../components/us/ThoughtCard'
 import { BudgetView } from '../components/us/BudgetView'
 import { BudgetEntryModal, type BudgetTransaction } from '../components/us/BudgetEntryModal'
+import { BudgetCategoryLimitsModal } from '../components/us/BudgetCategoryLimitsModal'
 import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon, ChevronDownIcon, BellIcon } from '../components/layout/icons'
@@ -71,8 +72,9 @@ export function Us() {
   const [addedToToday, setAddedToToday] = useState<Set<string>>(new Set())
   const [archivedOpen, setArchivedOpen] = useState(false)
   const [budgetTransactions, setBudgetTransactions] = useState<BudgetTransaction[]>([])
-  const [budgetLimit, setBudgetLimit] = useState<number | null>(null)
+  const [categoryLimits, setCategoryLimits] = useState<Record<string, number>>({})
   const [budgetEntry, setBudgetEntry] = useState<BudgetTransaction | 'new' | null>(null)
+  const [categoryLimitsOpen, setCategoryLimitsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const thoughtComposerRef = useRef<HTMLTextAreaElement>(null)
 
@@ -92,7 +94,7 @@ export function Us() {
         .from('budget_transactions')
         .select('id, type, amount, category, description, paid_by, split_mode, occurred_on')
         .order('occurred_on', { ascending: false }),
-      supabase.from('budget_settings').select('monthly_limit').eq('household_id', householdId).maybeSingle(),
+      supabase.from('budget_settings').select('category_limits').eq('household_id', householdId).maybeSingle(),
     ])
 
     const members = (membersRes.data ?? []) as { user_id: string }[]
@@ -102,7 +104,7 @@ export function Us() {
     setReadings((readingsRes.data ?? []) as Item[])
     setThoughts((thoughtsRes.data ?? []) as Thought[])
     setBudgetTransactions((budgetRes.data ?? []) as BudgetTransaction[])
-    setBudgetLimit((budgetSettingsRes.data as { monthly_limit: number | null } | null)?.monthly_limit ?? null)
+    setCategoryLimits((budgetSettingsRes.data as { category_limits: Record<string, number> } | null)?.category_limits ?? {})
     setLoading(false)
   }, [householdId, user])
 
@@ -238,7 +240,6 @@ export function Us() {
   const partnerLabel = partnerId ? (profiles[partnerId] ?? 'partner') : 'partner'
   const activeThoughts = thoughts.filter((t) => !t.archived)
   const archivedThoughts = thoughts.filter((t) => t.archived)
-  const budgetCategories = [...new Set(budgetTransactions.map((t) => t.category))].sort()
   // "New" nudges sent to me that I haven't reacted to yet — the bell's
   // notification-center badge count.
   const unreadNudgeCount = nudges.filter((n) => n.to_user_id === user?.id && n.status === 'sent').length
@@ -286,14 +287,13 @@ export function Us() {
       <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd}>
         {subView === 'budget' && user && householdId && (
           <BudgetView
-            householdId={householdId}
             userId={user.id}
             partnerId={partnerId}
             partnerLabel={partnerLabel}
             transactions={budgetTransactions}
-            monthlyLimit={budgetLimit}
-            onReload={load}
+            categoryLimits={categoryLimits}
             onEdit={(t) => setBudgetEntry(t)}
+            onEditLimits={() => setCategoryLimitsOpen(true)}
           />
         )}
 
@@ -426,11 +426,22 @@ export function Us() {
           userId={user.id}
           partnerId={partnerId}
           partnerLabel={partnerLabel}
-          categories={budgetCategories}
           entry={budgetEntry === 'new' ? null : budgetEntry}
           onClose={closeBudgetEntry}
           onSaved={saveBudgetEntry}
           onDeleted={saveBudgetEntry}
+        />
+      )}
+
+      {categoryLimitsOpen && householdId && (
+        <BudgetCategoryLimitsModal
+          householdId={householdId}
+          categoryLimits={categoryLimits}
+          onClose={() => setCategoryLimitsOpen(false)}
+          onSaved={() => {
+            setCategoryLimitsOpen(false)
+            load()
+          }}
         />
       )}
     </div>
