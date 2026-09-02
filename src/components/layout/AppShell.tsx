@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../hooks/useAuth'
@@ -39,11 +39,25 @@ export function AppShell() {
   const [courses, setCourses] = useState<Course[]>([])
   // The page currently mounted under <Outlet> can override what the
   // persistent "+" does (see useQuickAdd) — falls back to the Timeline
-  // task/event modal when nothing's registered one.
-  const [pageQuickAdd, setPageQuickAdd] = useState<QuickAddHandler>(null)
+  // task/event modal when nothing's registered one. A ref, not state:
+  // useQuickAdd re-registers on every render of the page that calls it
+  // (its handler is usually a fresh inline function), and storing that in
+  // state here would re-render AppShell on every one of those registrations
+  // — which re-renders the page under <Outlet>, which registers again,
+  // forever. A ref just remembers the latest handler without triggering
+  // any of that.
+  const quickAddHandlerRef = useRef<QuickAddHandler>(null)
+  const quickAddContextValue = useMemo(
+    () => ({
+      setHandler: (h: QuickAddHandler) => {
+        quickAddHandlerRef.current = h
+      },
+    }),
+    [],
+  )
 
   function handleQuickAddClick() {
-    if (pageQuickAdd) pageQuickAdd()
+    if (quickAddHandlerRef.current) quickAddHandlerRef.current()
     else setQuickAddOpen(true)
   }
 
@@ -57,7 +71,7 @@ export function AppShell() {
 
   return (
     <SettingsContext.Provider value={{ openSettings: () => setSettingsOpen(true) }}>
-      <QuickAddContext.Provider value={{ setHandler: (h) => setPageQuickAdd(() => h) }}>
+      <QuickAddContext.Provider value={quickAddContextValue}>
         <div className="flex h-dvh flex-col bg-bg md:flex-row">
           <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-6 md:flex">
             <Logo size={36} className="rounded-lg" />
