@@ -6,10 +6,11 @@ import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { NoteCard } from '../components/notes/NoteCard'
-import { AddNoteButton } from '../components/notes/AddNoteButton'
+import { AddNoteModal } from '../components/notes/AddNoteModal'
 import { CourseCard } from '../components/courses/CourseCard'
-import { AddCourseButton } from '../components/courses/AddCourseButton'
+import { AddCourseModal } from '../components/courses/AddCourseModal'
 import { useSettings } from '../hooks/useSettings'
+import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon } from '../components/layout/icons'
 
 const REALTIME_TABLES = ['notes', 'courses', 'reading_items']
@@ -55,6 +56,8 @@ export function Notes() {
   const [search, setSearch] = useState('')
   const [courseFilter, setCourseFilter] = useState('')
   const [loading, setLoading] = useState(true)
+  const [addNoteOpen, setAddNoteOpen] = useState(false)
+  const [addCourseOpen, setAddCourseOpen] = useState(false)
 
   const load = useCallback(async () => {
     if (!householdId) return
@@ -91,6 +94,13 @@ export function Notes() {
     setSearchParams(view === 'courses' ? { view } : {}, { replace: true })
   }
 
+  // The persistent "+" in AppShell adds whatever this tab is currently
+  // showing — a note or a course — instead of always opening Timeline's
+  // task/event quick-add.
+  useQuickAdd(
+    householdId && user ? (subView === 'notes' ? () => setAddNoteOpen(true) : () => setAddCourseOpen(true)) : null,
+  )
+
   const filtered = useMemo(() => {
     return notes.filter((n) => {
       if (courseFilter && n.course_id !== courseFilter) return false
@@ -108,8 +118,22 @@ export function Notes() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Notes</h1>
         <div className="flex items-center gap-2">
-          {subView === 'notes' && householdId && user && <AddNoteButton householdId={householdId} userId={user.id} courses={courses} />}
-          {subView === 'courses' && householdId && user && <AddCourseButton householdId={householdId} userId={user.id} onAdded={load} />}
+          {subView === 'notes' && householdId && user && (
+            <button
+              onClick={() => setAddNoteOpen(true)}
+              className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-bg transition-opacity hover:opacity-90"
+            >
+              New note
+            </button>
+          )}
+          {subView === 'courses' && householdId && user && (
+            <button
+              onClick={() => setAddCourseOpen(true)}
+              className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-bg transition-opacity hover:opacity-90"
+            >
+              Add course
+            </button>
+          )}
           <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
             <SettingsIcon className="h-5 w-5" />
           </button>
@@ -199,6 +223,13 @@ export function Notes() {
             ))}
           </div>
         ))}
+
+      {addNoteOpen && householdId && user && (
+        <AddNoteModal householdId={householdId} userId={user.id} courses={courses} onClose={() => setAddNoteOpen(false)} />
+      )}
+      {addCourseOpen && householdId && user && (
+        <AddCourseModal householdId={householdId} userId={user.id} onAdded={load} onClose={() => setAddCourseOpen(false)} />
+      )}
     </div>
   )
 }

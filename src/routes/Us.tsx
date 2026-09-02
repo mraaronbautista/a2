@@ -12,6 +12,7 @@ import { ThoughtCard } from '../components/us/ThoughtCard'
 import { BudgetView } from '../components/us/BudgetView'
 import { BudgetEntryModal, type BudgetTransaction } from '../components/us/BudgetEntryModal'
 import { useSettings } from '../hooks/useSettings'
+import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon, ChevronDownIcon, BellIcon } from '../components/layout/icons'
 
 const REALTIME_TABLES = ['nudges', 'thoughts', 'budget_transactions', 'budget_settings']
@@ -73,6 +74,7 @@ export function Us() {
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null)
   const [budgetEntry, setBudgetEntry] = useState<BudgetTransaction | 'new' | null>(null)
   const [loading, setLoading] = useState(true)
+  const thoughtComposerRef = useRef<HTMLTextAreaElement>(null)
 
   const load = useCallback(async () => {
     if (!householdId || !user) return
@@ -217,6 +219,18 @@ export function Us() {
     load()
   }
 
+  // The persistent "+" in AppShell adds a transaction on Budget; Thoughts
+  // has no separate "add" modal (the composer's always visible), so it
+  // just focuses that instead.
+  useQuickAdd(
+    subView === 'budget'
+      ? () => setBudgetEntry('new')
+      : () => {
+          thoughtComposerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          thoughtComposerRef.current?.focus()
+        },
+  )
+
   if (householdLoading || loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
   }
@@ -293,7 +307,7 @@ export function Us() {
 
         {subView === 'thoughts' && user && householdId && (
           <div className="space-y-3">
-            <ThoughtComposer householdId={householdId} userId={user.id} onPosted={load} />
+            <ThoughtComposer ref={thoughtComposerRef} householdId={householdId} userId={user.id} onPosted={load} />
 
             {activeThoughts.length === 0 ? (
               <p className="text-sm text-ink-muted">Nothing pinned yet.</p>

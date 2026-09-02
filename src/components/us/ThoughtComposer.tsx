@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { forwardRef, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
 interface ThoughtComposerProps {
@@ -7,7 +7,13 @@ interface ThoughtComposerProps {
   onPosted: () => void
 }
 
-export function ThoughtComposer({ householdId, userId, onPosted }: ThoughtComposerProps) {
+// Forwards the textarea so the persistent "+" (see useQuickAdd in Us.tsx)
+// can focus it directly — Thoughts has no separate "add" modal to open,
+// the composer's just always sitting there at the top.
+export const ThoughtComposer = forwardRef<HTMLTextAreaElement, ThoughtComposerProps>(function ThoughtComposer(
+  { householdId, userId, onPosted },
+  ref,
+) {
   const [body, setBody] = useState('')
   const [visibility, setVisibility] = useState<'private' | 'shared'>('shared')
   const [posting, setPosting] = useState(false)
@@ -34,6 +40,7 @@ export function ThoughtComposer({ householdId, userId, onPosted }: ThoughtCompos
   return (
     <form onSubmit={handleSubmit} className="space-y-2 rounded-xl border border-border bg-surface p-3">
       <textarea
+        ref={ref}
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder="Pin a thought, with no due date so it doesn't get lost…"
@@ -67,4 +74,4 @@ export function ThoughtComposer({ householdId, userId, onPosted }: ThoughtCompos
       </div>
     </form>
   )
-}
+})
