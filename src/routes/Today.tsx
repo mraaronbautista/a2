@@ -396,7 +396,7 @@ export function Today() {
           />
         )}
   
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-nowrap items-center justify-between gap-2 overflow-x-auto">
           <div className="flex min-w-0 items-center gap-1.5">
             <button
               onClick={() => setAnchorDate(shiftAnchor(view, anchorDate, -1))}
