@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
 import { endOfDay } from 'date-fns'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
 import { useProfiles } from '../hooks/useProfiles'
+import { usePartnerId } from '../hooks/usePartnerId'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
-import { NudgePickerButton } from '../components/us/NudgePickerButton'
-import { NudgeRow } from '../components/us/NudgeRow'
 import { ThoughtComposer } from '../components/us/ThoughtComposer'
 import { ThoughtCard } from '../components/us/ThoughtCard'
 import { BudgetView } from '../components/us/BudgetView'
@@ -14,30 +13,12 @@ import { BudgetEntryModal, type BudgetTransaction } from '../components/us/Budge
 import { BudgetCategoryLimitsModal } from '../components/us/BudgetCategoryLimitsModal'
 import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
-import { SettingsIcon, ChevronDownIcon, BellIcon } from '../components/layout/icons'
+import { SettingsIcon, ChevronDownIcon } from '../components/layout/icons'
 
-const REALTIME_TABLES = ['nudges', 'thoughts', 'budget_transactions', 'budget_settings']
+const REALTIME_TABLES = ['thoughts', 'budget_transactions', 'budget_settings']
 const SUBVIEW_ORDER = ['budget', 'thoughts'] as const
 type SubView = (typeof SUBVIEW_ORDER)[number]
 const SWIPE_MIN_DISTANCE = 60
-
-type Status = 'sent' | 'on_it' | 'done' | 'later'
-
-interface Nudge {
-  id: string
-  from_user_id: string
-  to_user_id: string
-  item_type: 'task' | 'reading' | 'note'
-  item_id: string
-  message: string | null
-  status: Status
-  created_at: string
-}
-
-interface Item {
-  id: string
-  title: string
-}
 
 interface ThoughtComment {
   id: string
@@ -60,14 +41,10 @@ export function Us() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
   const profiles = useProfiles()
+  const partnerId = usePartnerId()
   const { openSettings } = useSettings()
 
   const [subView, setSubView] = useState<SubView>('budget')
-  const [nudgesOpen, setNudgesOpen] = useState(false)
-  const [partnerId, setPartnerId] = useState<string | null>(null)
-  const [nudges, setNudges] = useState<Nudge[]>([])
-  const [tasks, setTasks] = useState<Item[]>([])
-  const [readings, setReadings] = useState<Item[]>([])
   const [thoughts, setThoughts] = useState<Thought[]>([])
   const [addedToToday, setAddedToToday] = useState<Set<string>>(new Set())
   const [archivedOpen, setArchivedOpen] = useState(false)
@@ -82,13 +59,7 @@ export function Us() {
     if (!householdId || !user) return
     setLoading(true)
 
-    const [membersRes, nudgesRes, tasksRes, readingsRes, thoughtsRes, budgetRes, budgetSettingsRes] = await Promise.all([
-      supabase.from('household_members').select('user_id').eq('household_id', householdId),
-      supabase.from('nudges').select('id, from_user_id, to_user_id, item_type, item_id, message, status, created_at').order('created_at', {
-        ascending: false,
-      }),
-      supabase.from('tasks').select('id, title'),
-      supabase.from('reading_items').select('id, title'),
+    const [thoughtsRes, budgetRes, budgetSettingsRes] = await Promise.all([
       supabase.from('thoughts').select('id, owner_id, body, visibility, comments, archived, created_at').order('created_at', { ascending: false }),
       supabase
         .from('budget_transactions')
@@ -97,11 +68,6 @@ export function Us() {
       supabase.from('budget_settings').select('category_limits').eq('household_id', householdId).maybeSingle(),
     ])
 
-    const members = (membersRes.data ?? []) as { user_id: string }[]
-    setPartnerId(members.find((m) => m.user_id !== user.id)?.user_id ?? null)
-    setNudges((nudgesRes.data ?? []) as Nudge[])
-    setTasks((tasksRes.data ?? []) as Item[])
-    setReadings((readingsRes.data ?? []) as Item[])
     setThoughts((thoughtsRes.data ?? []) as Thought[])
     setBudgetTransactions((budgetRes.data ?? []) as BudgetTransaction[])
     setCategoryLimits((budgetSettingsRes.data as { category_limits: Record<string, number> } | null)?.category_limits ?? {})
@@ -114,29 +80,9 @@ export function Us() {
 
   useRealtimeRefresh(REALTIME_TABLES, load)
 
-  const titleFor = useMemo(() => {
-    const taskMap = new Map(tasks.map((t) => [t.id, t.title]))
-    const readingMap = new Map(readings.map((r) => [r.id, r.title]))
-    return (itemType: Nudge['item_type'], itemId: string) => {
-      if (itemType === 'task') return taskMap.get(itemId) ?? '(deleted task)'
-      if (itemType === 'reading') return readingMap.get(itemId) ?? '(deleted reading)'
-      return '(note)'
-    }
-  }, [tasks, readings])
-
   function nameFor(userId: string) {
     if (userId === user?.id) return 'You'
     return profiles[userId] ?? 'Partner'
-  }
-
-  async function setStatus(nudgeId: string, status: Status) {
-    setNudges((prev) => prev.map((n) => (n.id === nudgeId ? { ...n, status } : n)))
-    await supabase.from('nudges').update({ status, updated_at: new Date().toISOString() }).eq('id', nudgeId)
-  }
-
-  async function cancelNudge(nudgeId: string) {
-    setNudges((prev) => prev.filter((n) => n.id !== nudgeId))
-    await supabase.from('nudges').delete().eq('id', nudgeId)
   }
 
   async function editThought(thoughtId: string, body: string) {
@@ -240,27 +186,12 @@ export function Us() {
   const partnerLabel = partnerId ? (profiles[partnerId] ?? 'partner') : 'partner'
   const activeThoughts = thoughts.filter((t) => !t.archived)
   const archivedThoughts = thoughts.filter((t) => t.archived)
-  // "New" nudges sent to me that I haven't reacted to yet — the bell's
-  // notification-center badge count.
-  const unreadNudgeCount = nudges.filter((n) => n.to_user_id === user?.id && n.status === 'sent').length
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Us</h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setNudgesOpen(true)}
-            className="relative flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink"
-          >
-            <BellIcon className="h-4 w-4" />
-            Nudges
-            {unreadNudgeCount > 0 && (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-white">
-                {unreadNudgeCount}
-              </span>
-            )}
-          </button>
           <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
             <SettingsIcon className="h-5 w-5" />
           </button>
@@ -369,56 +300,6 @@ export function Us() {
           </div>
         )}
       </div>
-
-      {nudgesOpen && (
-        <div
-          className="fixed inset-0 z-20 flex h-[100dvh] items-end justify-center overflow-hidden bg-black/30 md:items-center"
-          onClick={() => setNudgesOpen(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-[calc(100dvh-0.75rem)] w-full max-w-sm touch-pan-y space-y-3 overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] md:max-h-[85vh] md:rounded-2xl"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-navy">Nudges</h2>
-              {user && householdId && (
-                <NudgePickerButton
-                  householdId={householdId}
-                  userId={user.id}
-                  partnerId={partnerId}
-                  partnerLabel={partnerLabel}
-                  tasks={tasks}
-                  readings={readings}
-                  onAdded={load}
-                />
-              )}
-            </div>
-
-            {nudges.length === 0 ? (
-              <p className="text-sm text-ink-muted">No nudges yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {nudges.map((n) => (
-                  <NudgeRow
-                    key={n.id}
-                    title={titleFor(n.item_type, n.item_id)}
-                    itemType={n.item_type}
-                    message={n.message}
-                    status={n.status}
-                    direction={n.to_user_id === user?.id ? 'received' : 'sent'}
-                    otherPartyLabel={partnerLabel}
-                    createdAt={n.created_at}
-                    canReact={n.to_user_id === user?.id}
-                    canCancel={n.from_user_id === user?.id}
-                    onSetStatus={(status) => setStatus(n.id, status)}
-                    onCancel={() => cancelNudge(n.id)}
-                  />
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
 
       {budgetEntry && householdId && user && (
         <BudgetEntryModal

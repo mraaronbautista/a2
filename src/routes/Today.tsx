@@ -20,7 +20,7 @@ import { useProfiles } from '../hooks/useProfiles'
 import { usePartnerId } from '../hooks/usePartnerId'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { useSettings } from '../hooks/useSettings'
-import { ChevronDownIcon, SettingsIcon } from '../components/layout/icons'
+import { ChevronDownIcon, SettingsIcon, BellIcon } from '../components/layout/icons'
 import { expandOccurrences } from '../lib/recurrence'
 import { getOverlappingItemIds } from '../lib/overlap'
 import type { AgendaItem } from '../components/calendar/types'
@@ -33,6 +33,8 @@ import { PullToRefresh } from '../components/layout/PullToRefresh'
 import { TaskDetailModal } from '../components/agenda/TaskDetailModal'
 import { EventDetailModal } from '../components/agenda/EventDetailModal'
 import { TaskItem } from '../components/tasks/TaskItem'
+import { NudgePickerButton } from '../components/us/NudgePickerButton'
+import { NudgeRow } from '../components/us/NudgeRow'
 
 type ViewMode = 'day' | 'week' | 'month'
 
@@ -70,16 +72,22 @@ interface Course {
   color: string | null
 }
 
+type NudgeStatus = 'sent' | 'on_it' | 'done' | 'later'
+
 interface Nudge {
   id: string
-  message: string | null
-  item_type: string
   from_user_id: string
+  to_user_id: string
+  item_type: 'task' | 'reading' | 'note'
+  item_id: string
+  message: string | null
+  status: NudgeStatus
+  created_at: string
 }
 
 const DEFAULT_COLOR = '#5b6478'
 const TASK_COLOR = '#d97a4d'
-const REALTIME_TABLES = ['calendar_events', 'tasks', 'reading_items', 'reading_status']
+const REALTIME_TABLES = ['calendar_events', 'tasks', 'reading_items', 'reading_status', 'nudges']
 
 function rangeForView(view: ViewMode, anchorDate: Date) {
   if (view === 'month') {
@@ -121,6 +129,7 @@ export function Today() {
   const [courses, setCourses] = useState<Course[]>([])
   const [nudges, setNudges] = useState<Nudge[]>([])
   const [nudgedKeys, setNudgedKeys] = useState<Set<string>>(new Set())
+  const [nudgesOpen, setNudgesOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
   const [openEventId, setOpenEventId] = useState<string | null>(null)
@@ -135,7 +144,10 @@ export function Today() {
       supabase.from('tasks').select('id, title, due_date, end_at, completed_at, owner_id'),
       supabase.from('reading_items').select('id, title, due_date, course_id, courses(name, color, owner_id)'),
       supabase.from('courses').select('id, name, color'),
-      supabase.from('nudges').select('id, message, item_type, from_user_id').eq('to_user_id', user.id).eq('status', 'sent'),
+      supabase
+        .from('nudges')
+        .select('id, from_user_id, to_user_id, item_type, item_id, message, status, created_at')
+        .order('created_at', { ascending: false }),
     ])
 
     const readingItems = (readingsRes.data ?? []) as unknown as RawReading[]
@@ -342,6 +354,37 @@ export function Today() {
     })
   }
 
+  // Nudges live here now (a bell in the header) rather than as their own
+  // tab on Us — they're a notification center, and Timeline is where the
+  // tasks/readings they point at actually live.
+  const nudgeTitleFor = useMemo(() => {
+    const taskMap = new Map(rawTasks.map((t) => [t.id, t.title]))
+    const readingMap = new Map(rawReadings.map((r) => [r.id, r.title]))
+    return (itemType: Nudge['item_type'], itemId: string) => {
+      if (itemType === 'task') return taskMap.get(itemId) ?? '(deleted task)'
+      if (itemType === 'reading') return readingMap.get(itemId) ?? '(deleted reading)'
+      return '(note)'
+    }
+  }, [rawTasks, rawReadings])
+
+  const nudgeableTasks = useMemo(() => rawTasks.map((t) => ({ id: t.id, title: t.title })), [rawTasks])
+  const nudgeableReadings = useMemo(() => rawReadings.map((r) => ({ id: r.id, title: r.title })), [rawReadings])
+
+  async function setNudgeStatus(nudgeId: string, status: NudgeStatus) {
+    setNudges((prev) => prev.map((n) => (n.id === nudgeId ? { ...n, status } : n)))
+    await supabase.from('nudges').update({ status, updated_at: new Date().toISOString() }).eq('id', nudgeId)
+  }
+
+  async function cancelNudge(nudgeId: string) {
+    setNudges((prev) => prev.filter((n) => n.id !== nudgeId))
+    await supabase.from('nudges').delete().eq('id', nudgeId)
+  }
+
+  const partnerLabel = partnerId ? (profiles[partnerId] ?? 'partner') : 'partner'
+  // "New" nudges sent to me that I haven't reacted to yet — the bell's
+  // notification-center badge count.
+  const unreadNudgeCount = nudges.filter((n) => n.to_user_id === user?.id && n.status === 'sent').length
+
   const undatedTasks = rawTasks.filter((t) => !t.due_date && (!mineOnly || t.owner_id === user?.id))
   const undatedReadings = rawReadings.filter((r) => !r.due_date && (!mineOnly || r.courses?.owner_id === user?.id))
 
@@ -375,13 +418,27 @@ export function Today() {
             <span className="truncate">{periodLabel}</span>
             <ChevronDownIcon className="h-4 w-4 shrink-0 text-ink-muted" />
           </button>
-          <button
-            onClick={openSettings}
-            aria-label="Settings"
-            className="shrink-0 rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden"
-          >
-            <SettingsIcon className="h-5 w-5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => setNudgesOpen(true)}
+              aria-label="Nudges"
+              className="relative flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink"
+            >
+              <BellIcon className="h-4 w-4" />
+              {unreadNudgeCount > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-white">
+                  {unreadNudgeCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={openSettings}
+              aria-label="Settings"
+              className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden"
+            >
+              <SettingsIcon className="h-5 w-5" />
+            </button>
+          </div>
         </div>
   
         {pickerOpen && (
@@ -448,19 +505,6 @@ export function Today() {
         </div>
   
         {view === 'day' && <DateStrip selectedDate={anchorDate} onSelect={setAnchorDate} />}
-  
-        {view === 'day' && nudges.length > 0 && (
-          <section>
-            <h2 className="mb-2 text-sm font-semibold text-accent">Nudges</h2>
-            <ul className="space-y-2">
-              {nudges.map((n) => (
-                <li key={n.id} className="rounded-xl bg-accent-bg px-4 py-3 text-sm text-ink">
-                  {n.message ?? `Flagged a ${n.item_type} for you`}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
   
         {view === 'day' && (undatedTasks.length > 0 || undatedReadings.length > 0) && (
           <section>
@@ -550,6 +594,56 @@ export function Today() {
               load()
             }}
           />
+        )}
+
+        {nudgesOpen && (
+          <div
+            className="fixed inset-0 z-20 flex h-[100dvh] items-end justify-center overflow-hidden bg-black/30 md:items-center"
+            onClick={() => setNudgesOpen(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-[calc(100dvh-0.75rem)] w-full max-w-sm touch-pan-y space-y-3 overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] md:max-h-[85vh] md:rounded-2xl"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-navy">Nudges</h2>
+                {user && householdId && (
+                  <NudgePickerButton
+                    householdId={householdId}
+                    userId={user.id}
+                    partnerId={partnerId}
+                    partnerLabel={partnerLabel}
+                    tasks={nudgeableTasks}
+                    readings={nudgeableReadings}
+                    onAdded={load}
+                  />
+                )}
+              </div>
+
+              {nudges.length === 0 ? (
+                <p className="text-sm text-ink-muted">No nudges yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {nudges.map((n) => (
+                    <NudgeRow
+                      key={n.id}
+                      title={nudgeTitleFor(n.item_type, n.item_id)}
+                      itemType={n.item_type}
+                      message={n.message}
+                      status={n.status}
+                      direction={n.to_user_id === user?.id ? 'received' : 'sent'}
+                      otherPartyLabel={partnerLabel}
+                      createdAt={n.created_at}
+                      canReact={n.to_user_id === user?.id}
+                      canCancel={n.from_user_id === user?.id}
+                      onSetStatus={(status) => setNudgeStatus(n.id, status)}
+                      onCancel={() => cancelNudge(n.id)}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </PullToRefresh>
