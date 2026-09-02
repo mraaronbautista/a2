@@ -4,11 +4,17 @@ interface IconProps {
 
 const BASE = 'h-5 w-5'
 
-export function TodayIcon({ className }: IconProps) {
+// A vertical spine with three nodes and ticks reading outward — distinct
+// from a plain calendar glyph, reads as "a timeline of entries" rather
+// than "a date."
+export function TimelineIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
-      <rect x="3" y="4.5" width="18" height="16" rx="2" />
-      <path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
+      <line x1="6" y1="3" x2="6" y2="21" />
+      <circle cx="6" cy="7" r="1.6" />
+      <circle cx="6" cy="12" r="1.6" />
+      <circle cx="6" cy="17" r="1.6" />
+      <path d="M10 7h9M10 12h9M10 17h9" />
     </svg>
   )
 }

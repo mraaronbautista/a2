@@ -5,29 +5,32 @@ other accountable. Built with React + Vite, Supabase (Postgres, Auth, Storage), 
 Netlify. Installable to the home screen on iPad/iPhone/Mac.
 
 **Status: MVP Phase 1 complete**, now iterating post-launch. Auth, full database schema, and a
-responsive shell are done. Nav is four screens: **Today** (merged with Calendar — Day/Week/Month
+responsive shell are done. Nav is four screens: **Timeline** (merged with Calendar — Day/Week/Month
 as an internal view toggle rather than separate nav items, with a due tasks/readings agenda,
 recurring events, a 7-day DateStrip, swipe left/right on Day or Month view to step to the next/
-previous day or month, pull-to-refresh (hand-rolled, since installed PWAs get no native browser
-pull-to-refresh), a Mine/Both filter dropdown, a clickable month/year picker on
-the heading for fast long-range navigation, and one quick-add for either a task or an event, opened
-from the nav bar's "+"; a task carries an optional Starts/Ends pair just like an event does (not
-just a single due date), rendering as a proportional block on the Day timeline when both are set;
-click a task to open a full edit/delete modal — start/end time, course, notes, subtasks, file
-attachments via Supabase Storage, and a per-task comment/question thread (ask, reply, or mark
-handled — a shared task is co-managed, so either partner can do any of this, not just its owner);
-two of your own timed items that overlap get an "Overlap" badge and render side by side instead of
-one hiding the other, an overdue task shows a one-tap "Remind" button that nudges your partner
-without leaving the timeline, and a block's time label always shows its actual minute (e.g.
-"4:30am", not rounded down to "4am")), **Courses** (reading lists with per-user completion + class-prep/cold-call tracking, an
+previous day or month (works even on a day with nothing scheduled), pull-to-refresh (hand-rolled,
+since installed PWAs get no native browser pull-to-refresh), a Mine/Both filter dropdown, a
+clickable month/year picker on the heading for fast long-range navigation, and one quick-add for
+either a task or an event, opened from the nav bar's "+"; a task carries an optional Starts/Ends
+pair just like an event does (not just a single due date), rendering as a proportional block on
+the Day timeline when both are set; click a task to open a full edit/delete modal — start/end
+time, course, notes, subtasks, file attachments via Supabase Storage, and a per-task
+comment/question thread (ask, reply, or mark handled — a shared task is co-managed, so either
+partner can do any of this, not just its owner); two of your own timed items that overlap get an
+"Overlap" badge and render in side-by-side columns instead of one hiding the other, an overdue
+task shows a one-tap "Remind" button that nudges your partner without leaving the timeline, a
+block's time label always shows its actual minute (e.g. "4:30am", not rounded down to "4am"), and
+a free stretch of 90+ minutes between items collapses to a thin "free" divider instead of forcing
+a long empty scroll), **Courses** (reading lists with per-user completion + class-prep/cold-call tracking, an
 "Add reading" form with a Bulk mode — one reading per line, paste a whole syllabus at once — plus
 an "is_shared" classmates toggle so both partners can manage the same reading list), **Notes** (case briefs; Tiptap freeform notes with headings,
 multicolor highlight, working lists, and images via Supabase Storage; search; tag-by-course;
 private/shared — a shared note is co-managed, so either partner can edit or delete it, and the
 detail view shows who last touched it and when), and **Us** (a Nudges/Thoughts sub-view toggle — nudges keep their two-way
 on-it/later/done reactions and activity log; Thoughts is an inbox for unstructured shared notes
-with comment threads and one-tap promotion into a task). The mobile nav is a floating pill (Today,
-Courses, Notes, Us) with the quick-add "+" as its own circle beside it, at the same level; desktop
+with comment threads and one-tap promotion into a task). The mobile nav is a floating pill
+(Timeline, Courses, Notes, Us) with the quick-add "+" as its own circle beside it, at the same
+level; desktop
 keeps the sidebar plus a "Quick add" button above it. A Settings sheet (gear icon on every screen)
 covers notifications, a manual light/dark toggle (persisted per-device), a short in-app guide, and
 sign out.

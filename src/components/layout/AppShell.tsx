@@ -8,10 +8,10 @@ import { useTheme } from '../../hooks/useTheme'
 import { SettingsContext } from '../../hooks/useSettings'
 import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
-import { CoursesIcon, NotesIcon, TodayIcon, UsIcon } from './icons'
+import { CoursesIcon, NotesIcon, TimelineIcon, UsIcon } from './icons'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Today', Icon: TodayIcon },
+  { to: '/', label: 'Timeline', Icon: TimelineIcon },
   { to: '/courses', label: 'Courses', Icon: CoursesIcon },
   { to: '/notes', label: 'Notes', Icon: NotesIcon },
   { to: '/us', label: 'Us', Icon: UsIcon },
@@ -48,7 +48,7 @@ export function AppShell() {
 
   return (
     <SettingsContext.Provider value={{ openSettings: () => setSettingsOpen(true) }}>
-      <div className="flex min-h-svh flex-col bg-bg md:flex-row">
+      <div className="flex h-dvh flex-col bg-bg md:flex-row">
         <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-6 md:flex">
           <Logo size={36} className="rounded-lg" />
 
@@ -82,11 +82,11 @@ export function AppShell() {
           </button>
         </aside>
 
-        <main className="flex-1 overflow-y-auto pb-28 md:pb-0">
+        <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-center gap-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:hidden">
+        <nav className="flex shrink-0 items-center justify-center gap-3 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:hidden">
           <div className="flex items-center gap-1 rounded-full border border-border bg-surface p-1.5 shadow-lg">
             {NAV_ITEMS.map((item) => (
               <NavLink

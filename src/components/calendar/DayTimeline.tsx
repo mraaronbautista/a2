@@ -65,8 +65,78 @@ function layoutColumns(sortedItems: AgendaItem[], blockEnd: (item: AgendaItem) =
   return result
 }
 
+// A gap this long or longer between items (or before the first / after the
+// last) gets visually compressed rather than rendered at full scale — a
+// free morning shouldn't cost 3+ screens of empty scroll to get past.
+const GAP_THRESHOLD_MINUTES = 90
+// Kept at full scale around each item regardless of gap collapsing, so a
+// collapsed band never starts flush against an item's edge.
+const GAP_PADDING_MINUTES = 30
+const COLLAPSED_GAP_HEIGHT = 28
+
 function minutesSinceMidnight(d: Date) {
   return d.getHours() * 60 + d.getMinutes()
+}
+
+// Long empty stretches within [rangeStart, rangeEnd] that don't fall near
+// any item — found by padding+merging item intervals, then taking the
+// complement. Returned sorted, non-overlapping.
+function findCollapsedGaps(intervals: [number, number][], rangeStart: number, rangeEnd: number): [number, number][] {
+  if (intervals.length === 0) return rangeEnd - rangeStart >= GAP_THRESHOLD_MINUTES ? [[rangeStart, rangeEnd]] : []
+
+  const padded = intervals
+    .map(([s, e]): [number, number] => [Math.max(rangeStart, s - GAP_PADDING_MINUTES), Math.min(rangeEnd, e + GAP_PADDING_MINUTES)])
+    .sort((a, b) => a[0] - b[0])
+
+  const busy: [number, number][] = []
+  for (const [s, e] of padded) {
+    const last = busy[busy.length - 1]
+    if (last && s <= last[1]) last[1] = Math.max(last[1], e)
+    else busy.push([s, e])
+  }
+
+  const gaps: [number, number][] = []
+  let cursor = rangeStart
+  for (const [s, e] of busy) {
+    if (s - cursor >= GAP_THRESHOLD_MINUTES) gaps.push([cursor, s])
+    cursor = Math.max(cursor, e)
+  }
+  if (rangeEnd - cursor >= GAP_THRESHOLD_MINUTES) gaps.push([cursor, rangeEnd])
+
+  return gaps
+}
+
+// Piecewise minute->pixel mapping: normal scale outside collapsedGaps,
+// a fixed small height for each collapsed one — so a block's position and
+// a gridline's position agree regardless of how many gaps sit above them.
+function buildYMapping(collapsedGaps: [number, number][], rangeStart: number, rangeEnd: number, pxPerMinute: number) {
+  const breakpoints: { minute: number; y: number; collapsed: boolean }[] = [{ minute: rangeStart, y: 0, collapsed: false }]
+  let cursor = rangeStart
+  let y = 0
+  for (const [s, e] of collapsedGaps) {
+    y += (s - cursor) * pxPerMinute
+    breakpoints.push({ minute: s, y, collapsed: false })
+    y += COLLAPSED_GAP_HEIGHT
+    breakpoints.push({ minute: e, y, collapsed: true })
+    cursor = e
+  }
+  y += (rangeEnd - cursor) * pxPerMinute
+  breakpoints.push({ minute: rangeEnd, y, collapsed: false })
+
+  function minuteToY(minute: number): number {
+    const m = Math.max(rangeStart, Math.min(rangeEnd, minute))
+    for (let i = 0; i < breakpoints.length - 1; i++) {
+      const a = breakpoints[i]
+      const b = breakpoints[i + 1]
+      if (m < a.minute || m > b.minute) continue
+      if (b.minute === a.minute) return a.y
+      const frac = (m - a.minute) / (b.minute - a.minute)
+      return a.y + frac * (b.y - a.y)
+    }
+    return y
+  }
+
+  return { minuteToY, totalHeight: y }
 }
 
 function formatHour(hour: number) {
@@ -128,8 +198,23 @@ export function DayTimeline({ items, ownerLabel, onOpenItem, overlappingKeys, on
   const rangeStartHour = Math.min(DEFAULT_RANGE_START_HOUR, Math.floor(earliestMinute / 60))
   const rangeEndHour = Math.max(DEFAULT_RANGE_END_HOUR, Math.ceil(latestMinute / 60))
   const rangeStartMinute = rangeStartHour * 60
+  const rangeEndMinute = rangeEndHour * 60
   const hours = Array.from({ length: rangeEndHour - rangeStartHour + 1 }, (_, i) => rangeStartHour + i)
-  const totalHeight = (rangeEndHour - rangeStartHour) * 60 * PX_PER_MINUTE
+
+  const itemIntervals: [number, number][] = sortedTimed.map((i) => [minutesSinceMidnight(i.start), minutesSinceMidnight(blockEnd(i))])
+  const collapsedGaps = findCollapsedGaps(itemIntervals, rangeStartMinute, rangeEndMinute)
+  const { minuteToY, totalHeight } = buildYMapping(collapsedGaps, rangeStartMinute, rangeEndMinute, PX_PER_MINUTE)
+
+  function isHourCollapsed(hour: number) {
+    return collapsedGaps.some(([s, e]) => s <= hour * 60 && hour * 60 + 60 <= e)
+  }
+
+  function formatGapLength(minutes: number) {
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    if (h === 0) return `${m}m`
+    return m === 0 ? `${h}h` : `${h}h ${m}m`
+  }
 
   return (
     <div className="space-y-3">
@@ -153,33 +238,38 @@ export function DayTimeline({ items, ownerLabel, onOpenItem, overlappingKeys, on
 
       <div className="flex" style={{ height: totalHeight }}>
         <div className="relative w-12 shrink-0 text-right">
-          {hours.map((h) => (
-            <span
-              key={h}
-              className="absolute right-2 -translate-y-1/2 text-xs text-ink-muted"
-              style={{ top: (h - rangeStartHour) * 60 * PX_PER_MINUTE }}
-            >
-              {formatHour(h)}
-            </span>
-          ))}
+          {hours
+            .filter((h) => !isHourCollapsed(h))
+            .map((h) => (
+              <span key={h} className="absolute right-2 -translate-y-1/2 text-xs text-ink-muted" style={{ top: minuteToY(h * 60) }}>
+                {formatHour(h)}
+              </span>
+            ))}
         </div>
 
         <div className="relative flex-1 border-l border-border">
-          {hours.map((h) => (
+          {hours
+            .filter((h) => !isHourCollapsed(h))
+            .map((h) => (
+              <div key={h} className="absolute inset-x-0 border-t border-border/60" style={{ top: minuteToY(h * 60) }} />
+            ))}
+
+          {collapsedGaps.map(([s, e]) => (
             <div
-              key={h}
-              className="absolute inset-x-0 border-t border-border/60"
-              style={{ top: (h - rangeStartHour) * 60 * PX_PER_MINUTE }}
-            />
+              key={s}
+              className="absolute inset-x-0 flex items-center gap-2 text-[10px] text-ink-muted"
+              style={{ top: minuteToY(s), height: COLLAPSED_GAP_HEIGHT }}
+            >
+              <span className="h-px flex-1 border-t border-dashed border-border" />
+              <span className="shrink-0">{formatGapLength(e - s)} free</span>
+              <span className="h-px flex-1 border-t border-dashed border-border" />
+            </div>
           ))}
 
           {sortedTimed.map((item) => {
-            const top = (minutesSinceMidnight(item.start) - rangeStartMinute) * PX_PER_MINUTE
+            const top = minuteToY(minutesSinceMidnight(item.start))
             const durationMinutes = Math.round((blockEnd(item).getTime() - item.start.getTime()) / 60000)
-            const height = Math.max(
-              (minutesSinceMidnight(blockEnd(item)) - minutesSinceMidnight(item.start)) * PX_PER_MINUTE,
-              MIN_BLOCK_MINUTES * PX_PER_MINUTE,
-            )
+            const height = Math.max(minuteToY(minutesSinceMidnight(blockEnd(item))) - top, MIN_BLOCK_MINUTES * PX_PER_MINUTE)
             const label = ownerLabel(item)
             const overlapping = overlappingKeys?.has(item.key) ?? false
             const overdue = isOverdue(item)

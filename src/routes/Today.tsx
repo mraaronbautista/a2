@@ -489,7 +489,7 @@ export function Today() {
         )}
   
         {view === 'month' && (
-          <div onTouchStart={handleMonthSwipeStart} onTouchEnd={handleMonthSwipeEnd}>
+          <div className="min-h-[60vh]" onTouchStart={handleMonthSwipeStart} onTouchEnd={handleMonthSwipeEnd}>
             <MonthView
               anchorDate={anchorDate}
               items={agendaItems}
@@ -502,7 +502,7 @@ export function Today() {
         )}
         {view === 'week' && <WeekView anchorDate={anchorDate} items={agendaItems} ownerLabel={ownerLabel} onOpenItem={openItem} />}
         {view === 'day' && (
-          <div onTouchStart={handleDaySwipeStart} onTouchEnd={handleDaySwipeEnd}>
+          <div className="min-h-[60vh]" onTouchStart={handleDaySwipeStart} onTouchEnd={handleDaySwipeEnd}>
             <DayView
               anchorDate={anchorDate}
               items={agendaItems}
