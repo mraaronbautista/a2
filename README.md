@@ -25,8 +25,10 @@ task shows a one-tap "Remind" button that nudges your partner without leaving th
 block's time label always shows its actual minute (e.g. "4:30am", not rounded down to "4am"), and
 a free stretch of 90+ minutes between items collapses to a thin "free" divider instead of forcing
 a long empty scroll), **Courses** (reading lists with per-user completion + class-prep/cold-call tracking, an
-"Add reading" form with a Bulk mode — one reading per line, paste a whole syllabus at once — plus
-an "is_shared" classmates toggle so both partners can manage the same reading list), **Notes** (case briefs; Tiptap freeform notes with headings,
+"Add reading" form with a Bulk mode — one reading per line, paste a whole syllabus at once —
+a "+ Note" link on each reading that jumps straight into a new note already titled and tagged to
+that course, and an "is_shared" classmates toggle so both partners can manage the same reading
+list), **Notes** (case briefs; Tiptap freeform notes with headings,
 multicolor highlight, working lists, and images via Supabase Storage; search; tag-by-course;
 private/shared — a shared note is co-managed, so either partner can edit or delete it, and the
 detail view shows who last touched it and when), and **Us** (a Nudges/Thoughts sub-view toggle — nudges keep their two-way

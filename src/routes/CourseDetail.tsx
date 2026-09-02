@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
+import { useHousehold } from '../hooks/useHousehold'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { ReadingItemRow } from '../components/courses/ReadingItemRow'
 import { AddReadingButton } from '../components/courses/AddReadingButton'
@@ -36,6 +37,7 @@ interface ReadingStatusRow {
 export function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>()
   const { user } = useAuth()
+  const { householdId } = useHousehold()
   const navigate = useNavigate()
 
   const [course, setCourse] = useState<Course | null>(null)
@@ -122,6 +124,28 @@ export function CourseDetail() {
     load()
   }
 
+  // The friction this removes: finding a reading's link and taking notes
+  // on it are two different screens today, so getting from one to the
+  // other meant leaving here, opening Notes, creating one, and manually
+  // tagging it to this course. This starts a note already tagged and
+  // titled after the reading, one tap away.
+  async function addNoteForReading(reading: ReadingItem) {
+    if (!user || !householdId || !course) return
+    const { data } = await supabase
+      .from('notes')
+      .insert({
+        household_id: householdId,
+        owner_id: user.id,
+        course_id: course.id,
+        type: 'freeform',
+        title: reading.title,
+        visibility: 'shared',
+      })
+      .select('id')
+      .single()
+    if (data) navigate(`/notes/${data.id}`)
+  }
+
   if (loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
   }
@@ -189,6 +213,7 @@ export function CourseDetail() {
                 onMoveUp={() => moveReading(index, -1)}
                 onMoveDown={() => moveReading(index, 1)}
                 onDelete={() => deleteReading(r.id)}
+                onAddNote={() => addNoteForReading(r)}
               />
             ))}
           </ul>

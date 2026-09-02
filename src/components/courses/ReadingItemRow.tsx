@@ -31,6 +31,7 @@ interface ReadingItemRowProps {
   onMoveUp: () => void
   onMoveDown: () => void
   onDelete: () => void
+  onAddNote: () => void
 }
 
 export function ReadingItemRow({
@@ -47,6 +48,7 @@ export function ReadingItemRow({
   onMoveUp,
   onMoveDown,
   onDelete,
+  onAddNote,
 }: ReadingItemRowProps) {
   return (
     <li className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3">
@@ -73,6 +75,10 @@ export function ReadingItemRow({
         className={['shrink-0 rounded-full px-2.5 py-1 text-xs font-medium', PREP_CLASS[prepStatus]].join(' ')}
       >
         {PREP_LABEL[prepStatus]}
+      </button>
+
+      <button onClick={onAddNote} className="shrink-0 text-xs text-ink-muted hover:text-accent" title="Start a note on this reading">
+        + Note
       </button>
 
       {canManage && (
