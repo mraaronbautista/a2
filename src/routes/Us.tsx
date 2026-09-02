@@ -258,12 +258,12 @@ export function Us() {
           )}
           <button
             onClick={() => setNudgesOpen(true)}
-            aria-label="Nudges"
-            className="relative rounded-full bg-surface p-2 text-ink-muted hover:text-ink"
+            className="relative flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink"
           >
-            <BellIcon className="h-5 w-5" />
+            <BellIcon className="h-4 w-4" />
+            Nudges
             {unreadNudgeCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-white">
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-white">
                 {unreadNudgeCount}
               </span>
             )}
