@@ -515,14 +515,17 @@ export function Today() {
           </div>
         )}
   
-        {openTaskId && user && (
+        {openTaskId && user && householdId && (
           <TaskDetailModal
             taskId={openTaskId}
             userId={user.id}
+            householdId={householdId}
             courses={courses}
             onClose={() => setOpenTaskId(null)}
             onSaved={() => {
-              setOpenTaskId(null)
+              // Saving (or duplicating) no longer closes the modal — the
+              // task keeps its read view open with the fresh data instead.
+              // Only actions that end the interaction close it explicitly.
               load()
             }}
             onDeleted={() => {

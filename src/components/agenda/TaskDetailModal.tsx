@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { format } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
 import { useProfiles } from '../../hooks/useProfiles'
+import { AttachmentIcon, DeleteIcon, DuplicateIcon, EditIcon } from '../layout/icons'
 import { TaskComments, type TaskComment } from './TaskComments'
 
 interface ChecklistItem {
@@ -36,6 +38,7 @@ interface TaskRow {
 interface TaskDetailModalProps {
   taskId: string
   userId: string
+  householdId: string
   courses: Course[]
   onClose: () => void
   onSaved: () => void
@@ -48,7 +51,7 @@ function toLocalInputValue(iso: string) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onDeleted }: TaskDetailModalProps) {
+export function TaskDetailModal({ taskId, userId, householdId, courses, onClose, onSaved, onDeleted }: TaskDetailModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const profiles = useProfiles()
 
@@ -57,6 +60,10 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
+  // Clicking a task opens a read view, not straight into editing — the
+  // pencil icon below is the explicit way in.
+  const [editing, setEditing] = useState(false)
 
   const [title, setTitle] = useState('')
   const [dueAt, setDueAt] = useState('')
@@ -87,6 +94,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
       setChecklist(t.checklist ?? [])
     }
     setDirty(false)
+    setEditing(false)
     setLoading(false)
   }, [taskId])
 
@@ -97,6 +105,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
   // A shared task is co-managed (RLS lets either partner update/delete
   // it) — private tasks are only ever fetchable by their owner anyway.
   const canManage = !!task && (task.owner_id === userId || task.visibility === 'shared')
+  const courseName = courses.find((c) => c.id === task?.course_id)?.name
 
   function markDirty<T>(setter: (v: T) => void) {
     return (v: T) => {
@@ -147,6 +156,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
       .eq('id', task.id)
     setSaving(false)
     setDirty(false)
+    setEditing(false)
     onSaved()
   }
 
@@ -154,6 +164,28 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
     if (!task || !window.confirm(`Delete "${task.title}"?`)) return
     await supabase.from('tasks').delete().eq('id', task.id)
     onDeleted()
+  }
+
+  // A fresh copy of the core content — not completion state, attachments,
+  // or the comment thread, which belong to this specific occurrence, not
+  // a new one.
+  async function handleDuplicate() {
+    if (!task) return
+    setDuplicating(true)
+    await supabase.from('tasks').insert({
+      household_id: householdId,
+      owner_id: userId,
+      title: task.title,
+      description: task.description,
+      due_date: task.due_date,
+      end_at: task.end_at,
+      course_id: task.course_id,
+      visibility: task.visibility,
+      checklist: task.checklist.map((c) => ({ ...c, done: false })),
+    })
+    setDuplicating(false)
+    onSaved()
+    onClose()
   }
 
   async function handleAttachmentSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -191,7 +223,7 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
         ) : (
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-3">
-              {canManage ? (
+              {canManage && editing ? (
                 <input
                   type="text"
                   value={title}
@@ -201,18 +233,53 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
               ) : (
                 <h2 className="text-lg font-semibold text-navy">{title}</h2>
               )}
-              {canManage && (
-                <button
-                  onClick={handleSave}
-                  disabled={saving || !dirty}
-                  className="shrink-0 rounded-lg bg-navy px-3 py-1.5 text-xs font-medium text-bg disabled:opacity-40"
-                >
-                  {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
-                </button>
-              )}
             </div>
 
-            {canManage ? (
+            {canManage && (
+              <div className="flex items-center gap-3 text-ink-muted">
+                <button
+                  type="button"
+                  onClick={() => setEditing((v) => !v)}
+                  aria-label="Edit"
+                  className={editing ? 'text-accent' : 'hover:text-ink'}
+                >
+                  <EditIcon className="h-[18px] w-[18px]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  aria-label="Add attachment"
+                  className="hover:text-ink disabled:opacity-50"
+                >
+                  <AttachmentIcon className="h-[18px] w-[18px]" />
+                </button>
+                <input ref={fileInputRef} type="file" onChange={handleAttachmentSelect} className="hidden" />
+                <button
+                  type="button"
+                  onClick={handleDuplicate}
+                  disabled={duplicating}
+                  aria-label="Duplicate"
+                  className="hover:text-ink disabled:opacity-50"
+                >
+                  <DuplicateIcon className="h-[18px] w-[18px]" />
+                </button>
+                <button type="button" onClick={handleDelete} aria-label="Delete" className="hover:text-accent">
+                  <DeleteIcon className="h-[18px] w-[18px]" />
+                </button>
+                {editing && (
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !dirty}
+                    className="ml-auto shrink-0 rounded-lg bg-navy px-3 py-1.5 text-xs font-medium text-bg disabled:opacity-40"
+                  >
+                    {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {canManage && editing ? (
               <>
                 <label className="block text-xs text-ink-muted">
                   Starts
@@ -296,7 +363,24 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
                 </div>
               </>
             ) : (
-              notes && <p className="text-sm text-ink-muted">{notes}</p>
+              <div className="space-y-1.5">
+                {(task.due_date || task.end_at) && (
+                  <p className="text-sm text-ink-muted">
+                    {task.due_date && format(new Date(task.due_date), 'MMM d, h:mm a')}
+                    {task.end_at ? ` – ${format(new Date(task.end_at), 'h:mm a')}` : ''}
+                  </p>
+                )}
+                {courseName && <p className="text-sm text-ink-muted">{courseName}</p>}
+                {notes && <p className="whitespace-pre-wrap text-sm text-ink">{notes}</p>}
+                <span
+                  className={[
+                    'inline-block rounded-full px-2 py-0.5 text-xs capitalize',
+                    visibility === 'shared' ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
+                  ].join(' ')}
+                >
+                  {visibility}
+                </span>
+              </div>
             )}
 
             <div>
@@ -343,47 +427,30 @@ export function TaskDetailModal({ taskId, userId, courses, onClose, onSaved, onD
               )}
             </div>
 
-            <div>
-              <span className="text-xs font-semibold text-ink-muted">Attachments</span>
-              <ul className="mt-1 space-y-1">
-                {task.attachments.map((a) => (
-                  <li key={a.url} className="flex items-center gap-2">
-                    <a href={a.url} target="_blank" rel="noreferrer" className="flex-1 truncate text-sm text-accent underline">
-                      {a.name}
-                    </a>
-                    {canManage && (
-                      <button onClick={() => removeAttachment(a.url)} className="text-ink-muted hover:text-accent">
-                        ×
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              {canManage && (
-                <div className="mt-2">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="rounded-lg bg-bg px-3 py-1 text-xs font-medium text-ink-muted disabled:opacity-50"
-                  >
-                    {uploading ? 'Uploading…' : '+ Add attachment'}
-                  </button>
-                  <input ref={fileInputRef} type="file" onChange={handleAttachmentSelect} className="hidden" />
-                </div>
-              )}
-            </div>
+            {(task.attachments.length > 0 || uploading) && (
+              <div>
+                <span className="text-xs font-semibold text-ink-muted">Attachments</span>
+                <ul className="mt-1 space-y-1">
+                  {task.attachments.map((a) => (
+                    <li key={a.url} className="flex items-center gap-2">
+                      <a href={a.url} target="_blank" rel="noreferrer" className="flex-1 truncate text-sm text-accent underline">
+                        {a.name}
+                      </a>
+                      {canManage && (
+                        <button onClick={() => removeAttachment(a.url)} className="text-ink-muted hover:text-accent">
+                          ×
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                  {uploading && <li className="text-sm text-ink-muted">Uploading…</li>}
+                </ul>
+              </div>
+            )}
 
             <TaskComments comments={task.comments ?? []} onChange={updateComments} meId={userId} nameFor={nameFor} />
 
-            <div className="flex items-center justify-between border-t border-border pt-3">
-              {canManage ? (
-                <button onClick={handleDelete} className="text-sm text-accent">
-                  Delete task
-                </button>
-              ) : (
-                <span />
-              )}
+            <div className="flex justify-end border-t border-border pt-3">
               <button onClick={onClose} className="text-sm text-ink-muted hover:text-ink">
                 Close
               </button>

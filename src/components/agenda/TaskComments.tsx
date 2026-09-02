@@ -126,9 +126,11 @@ export function TaskComments({ comments, onChange, meId, nameFor }: TaskComments
           placeholder="Ask a question or leave a comment…"
           className="min-w-0 flex-1 rounded-lg border border-border bg-bg px-2 py-1 text-xs text-ink outline-none focus:border-accent"
         />
-        <button type="button" onClick={ask} className="rounded-lg bg-bg px-3 py-1 text-xs font-medium text-ink-muted">
-          Send
-        </button>
+        {draft.trim() && (
+          <button type="button" onClick={ask} className="rounded-lg bg-navy px-3 py-1 text-xs font-medium text-bg">
+            Send
+          </button>
+        )}
       </div>
     </div>
   )

@@ -13,10 +13,13 @@ since installed PWAs get no native browser pull-to-refresh), a Mine/Both filter 
 clickable month/year picker on the heading for fast long-range navigation, and one quick-add for
 either a task or an event, opened from the nav bar's "+"; a task carries an optional Starts/Ends
 pair just like an event does (not just a single due date), rendering as a proportional block on
-the Day timeline when both are set; click a task to open a full edit/delete modal — start/end
-time, course, notes, subtasks, file attachments via Supabase Storage, and a per-task
-comment/question thread (ask, reply, or mark handled — a shared task is co-managed, so either
-partner can do any of this, not just its owner); two of your own timed items that overlap get an
+the Day timeline when both are set; clicking a task opens a read view first — title, time,
+course, notes, visibility, subtasks, and comments — with a small icon row (edit, add attachment,
+duplicate, delete) rather than dropping straight into an editable form; the pencil icon toggles
+into full edit/delete (start/end time, course, notes, subtasks, file attachments via Supabase
+Storage), and a per-task comment/question thread (ask, reply, or mark handled — a shared task is
+co-managed, so either partner can do any of this, not just its owner) whose composer only shows
+Send once there's something typed; two of your own timed items that overlap get an
 "Overlap" badge and render in side-by-side columns instead of one hiding the other, an overdue
 task shows a one-tap "Remind" button that nudges your partner without leaving the timeline, a
 block's time label always shows its actual minute (e.g. "4:30am", not rounded down to "4am"), and
