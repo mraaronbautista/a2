@@ -8,11 +8,10 @@ import { useTheme } from '../../hooks/useTheme'
 import { SettingsContext } from '../../hooks/useSettings'
 import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
-import { CoursesIcon, NotesIcon, TimelineIcon, UsIcon } from './icons'
+import { NotesIcon, TimelineIcon, UsIcon } from './icons'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Timeline', Icon: TimelineIcon },
-  { to: '/courses', label: 'Courses', Icon: CoursesIcon },
   { to: '/notes', label: 'Notes', Icon: NotesIcon },
   { to: '/us', label: 'Us', Icon: UsIcon },
 ]

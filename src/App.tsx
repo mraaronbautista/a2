@@ -3,7 +3,6 @@ import { useAuth } from './hooks/useAuth'
 import { AppShell } from './components/layout/AppShell'
 import { Login } from './routes/Login'
 import { Today } from './routes/Today'
-import { Courses } from './routes/Courses'
 import { CourseDetail } from './routes/CourseDetail'
 import { Notes } from './routes/Notes'
 import { NoteDetail } from './routes/NoteDetail'
@@ -28,7 +27,7 @@ function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<Today />} />
-        <Route path="/courses" element={<Courses />} />
+        <Route path="/courses" element={<Navigate to="/notes?view=courses" replace />} />
         <Route path="/courses/:courseId" element={<CourseDetail />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/notes/:noteId" element={<NoteDetail />} />

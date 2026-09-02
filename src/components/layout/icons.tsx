@@ -19,16 +19,6 @@ export function TimelineIcon({ className }: IconProps) {
   )
 }
 
-export function CoursesIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
-      <path d="M12 6.5c-1.6-1.1-4-1.6-6.5-1.2v13c2.5-.4 4.9.1 6.5 1.2" />
-      <path d="M12 6.5c1.6-1.1 4-1.6 6.5-1.2v13c-2.5-.4-4.9.1-6.5 1.2" />
-      <path d="M12 6.5v13" />
-    </svg>
-  )
-}
-
 export function NotesIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
@@ -62,6 +52,15 @@ export function SettingsIcon({ className }: IconProps) {
       {GEAR_TOOTH_ANGLES.map((angle) => (
         <rect key={angle} x="10.85" y="1.6" width="2.3" height="3" rx="0.7" transform={`rotate(${angle} 12 12)`} />
       ))}
+    </svg>
+  )
+}
+
+export function BellIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
+      <path d="M6 9a6 6 0 0 1 12 0c0 3.5 1 5 2 6H4c1-1 2-2.5 2-6Z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
     </svg>
   )
 }

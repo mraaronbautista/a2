@@ -182,7 +182,7 @@ export function CourseDetail() {
             initialColor={course.color}
             initialIsShared={course.is_shared}
             onSaved={load}
-            onDeleted={() => navigate('/courses')}
+            onDeleted={() => navigate('/notes?view=courses')}
           />
         )}
       </div>
