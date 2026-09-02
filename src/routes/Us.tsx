@@ -248,14 +248,6 @@ export function Us() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Us</h1>
         <div className="flex items-center gap-2">
-          {subView === 'budget' && (
-            <button
-              onClick={() => setBudgetEntry('new')}
-              className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-bg transition-opacity hover:opacity-90"
-            >
-              + Add
-            </button>
-          )}
           <button
             onClick={() => setNudgesOpen(true)}
             className="relative flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink"

@@ -118,22 +118,6 @@ export function Notes() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Notes</h1>
         <div className="flex items-center gap-2">
-          {subView === 'notes' && householdId && user && (
-            <button
-              onClick={() => setAddNoteOpen(true)}
-              className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-bg transition-opacity hover:opacity-90"
-            >
-              New note
-            </button>
-          )}
-          {subView === 'courses' && householdId && user && (
-            <button
-              onClick={() => setAddCourseOpen(true)}
-              className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-bg transition-opacity hover:opacity-90"
-            >
-              Add course
-            </button>
-          )}
           <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
             <SettingsIcon className="h-5 w-5" />
           </button>
