@@ -608,6 +608,63 @@ export type Database = {
           },
         ]
       }
+      recurring_income: {
+        Row: {
+          account_id: string
+          amount: number
+          archived: boolean
+          category: string
+          created_at: string
+          created_by: string
+          day_of_month: number
+          household_id: string
+          id: string
+          label: string
+          paid_by: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          archived?: boolean
+          category: string
+          created_at?: string
+          created_by: string
+          day_of_month: number
+          household_id: string
+          id?: string
+          label: string
+          paid_by: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          archived?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string
+          day_of_month?: number
+          household_id?: string
+          id?: string
+          label?: string
+          paid_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_income_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_income_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           attachments: Json

@@ -14,8 +14,9 @@ import { BudgetCategoryLimitsModal } from '../components/us/BudgetCategoryLimits
 import { AccountsView } from '../components/us/AccountsView'
 import { AccountModal, type Account } from '../components/us/AccountModal'
 import { TransferModal } from '../components/us/TransferModal'
+import { RecurringIncomeModal, type RecurringIncome } from '../components/us/RecurringIncomeModal'
 
-const REALTIME_TABLES = ['budget_transactions', 'budget_settings', 'accounts']
+const REALTIME_TABLES = ['budget_transactions', 'budget_settings', 'accounts', 'recurring_income']
 const SUBVIEWS = ['overview', 'accounts'] as const
 type SubView = (typeof SUBVIEWS)[number]
 
@@ -29,9 +30,12 @@ export function Budget() {
   const [subView, setSubView] = useState<SubView>('overview')
   const [transactions, setTransactions] = useState<BudgetTransaction[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [recurringIncome, setRecurringIncome] = useState<RecurringIncome[]>([])
   const [categoryLimits, setCategoryLimits] = useState<Record<string, number>>({})
   const [entry, setEntry] = useState<BudgetTransaction | 'new' | null>(null)
+  const [entryPrefill, setEntryPrefill] = useState<{ category: string; amount: number; account_id: string; paid_by: string } | undefined>(undefined)
   const [accountModal, setAccountModal] = useState<Account | 'new' | null>(null)
+  const [recurringModal, setRecurringModal] = useState<RecurringIncome | 'new' | null>(null)
   const [transferOpen, setTransferOpen] = useState(false)
   const [limitsOpen, setLimitsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -40,18 +44,23 @@ export function Budget() {
     if (!householdId) return
     setLoading(true)
 
-    const [budgetRes, settingsRes, accountsRes] = await Promise.all([
+    const [budgetRes, settingsRes, accountsRes, recurringRes] = await Promise.all([
       supabase
         .from('budget_transactions')
         .select('id, type, amount, category, description, paid_by, split_mode, occurred_on, account_id, to_account_id')
         .order('occurred_on', { ascending: false }),
       supabase.from('budget_settings').select('category_limits').eq('household_id', householdId).maybeSingle(),
       supabase.from('accounts').select('id, name, kind, target_amount, starting_balance, archived').order('created_at', { ascending: true }),
+      supabase
+        .from('recurring_income')
+        .select('id, label, category, amount, account_id, day_of_month, paid_by, archived')
+        .order('day_of_month', { ascending: true }),
     ])
 
     setTransactions((budgetRes.data ?? []) as BudgetTransaction[])
     setCategoryLimits((settingsRes.data as { category_limits: Record<string, number> } | null)?.category_limits ?? {})
     setAccounts((accountsRes.data ?? []) as Account[])
+    setRecurringIncome((recurringRes.data ?? []) as RecurringIncome[])
     setLoading(false)
   }, [householdId])
 
@@ -64,7 +73,14 @@ export function Budget() {
   // + adds a transaction on Overview, or a new account on Accounts —
   // transferring/paying down a debt has its own visible button there
   // instead, since it needs at least two existing accounts to make sense.
-  useQuickAdd(subView === 'overview' ? () => setEntry('new') : () => setAccountModal('new'))
+  useQuickAdd(
+    subView === 'overview'
+      ? () => {
+          setEntryPrefill(undefined)
+          setEntry('new')
+        }
+      : () => setAccountModal('new'),
+  )
 
   if (householdLoading || loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
@@ -107,8 +123,18 @@ export function Budget() {
           transactions={transactions}
           accounts={activeAccounts}
           categoryLimits={categoryLimits}
-          onEdit={(t) => setEntry(t)}
+          recurringIncome={recurringIncome.filter((r) => !r.archived)}
+          onEdit={(t) => {
+            setEntryPrefill(undefined)
+            setEntry(t)
+          }}
           onEditLimits={() => setLimitsOpen(true)}
+          onLogRecurring={(template) => {
+            setEntryPrefill({ category: template.category, amount: template.amount, account_id: template.account_id, paid_by: template.paid_by })
+            setEntry('new')
+          }}
+          onEditRecurring={(template) => setRecurringModal(template)}
+          onAddRecurring={() => setRecurringModal('new')}
         />
       )}
 
@@ -129,13 +155,19 @@ export function Budget() {
           partnerLabel={partnerLabel}
           accounts={activeAccounts}
           entry={entry === 'new' ? null : entry}
-          onClose={() => setEntry(null)}
+          prefill={entry === 'new' ? entryPrefill : undefined}
+          onClose={() => {
+            setEntry(null)
+            setEntryPrefill(undefined)
+          }}
           onSaved={() => {
             setEntry(null)
+            setEntryPrefill(undefined)
             load()
           }}
           onDeleted={() => {
             setEntry(null)
+            setEntryPrefill(undefined)
             load()
           }}
         />
@@ -180,6 +212,26 @@ export function Budget() {
           onClose={() => setLimitsOpen(false)}
           onSaved={() => {
             setLimitsOpen(false)
+            load()
+          }}
+        />
+      )}
+
+      {recurringModal && householdId && user && (
+        <RecurringIncomeModal
+          householdId={householdId}
+          userId={user.id}
+          partnerId={partnerId}
+          partnerLabel={partnerLabel}
+          accounts={activeAccounts}
+          template={recurringModal === 'new' ? null : recurringModal}
+          onClose={() => setRecurringModal(null)}
+          onSaved={() => {
+            setRecurringModal(null)
+            load()
+          }}
+          onDeleted={() => {
+            setRecurringModal(null)
             load()
           }}
         />

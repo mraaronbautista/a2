@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns'
 import { iconForCategory } from '../../lib/budgetCategories'
 import type { Account } from './AccountModal'
 import type { BudgetTransaction } from './BudgetEntryModal'
+import type { RecurringIncome } from './RecurringIncomeModal'
 
 interface BudgetViewProps {
   userId: string
@@ -11,8 +12,12 @@ interface BudgetViewProps {
   transactions: BudgetTransaction[]
   accounts: Account[]
   categoryLimits: Record<string, number>
+  recurringIncome: RecurringIncome[]
   onEdit: (t: BudgetTransaction) => void
   onEditLimits: () => void
+  onLogRecurring: (template: RecurringIncome) => void
+  onEditRecurring: (template: RecurringIncome) => void
+  onAddRecurring: () => void
 }
 
 function currentMonthKey() {
@@ -26,7 +31,20 @@ function monthKey(dateStr: string) {
 
 const TRANSFER_ICON: Record<Account['kind'], string> = { debt: '💳', savings: '🎯', asset: '↔️' }
 
-export function BudgetView({ userId, partnerId, partnerLabel, transactions, accounts, categoryLimits, onEdit, onEditLimits }: BudgetViewProps) {
+export function BudgetView({
+  userId,
+  partnerId,
+  partnerLabel,
+  transactions,
+  accounts,
+  categoryLimits,
+  recurringIncome,
+  onEdit,
+  onEditLimits,
+  onLogRecurring,
+  onEditRecurring,
+  onAddRecurring,
+}: BudgetViewProps) {
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts])
 
   const thisMonth = currentMonthKey()
@@ -71,6 +89,50 @@ export function BudgetView({ userId, partnerId, partnerLabel, transactions, acco
     () => monthTransactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
     [monthTransactions],
   )
+
+  const netThisMonth = incomeThisMonth - spentThisMonth
+
+  // Who actually received the money this month, from paid_by on income
+  // rows — a quiet breakdown, not a headline number.
+  const incomeByPerson = useMemo(() => {
+    let mine = 0
+    let partners = 0
+    for (const t of monthTransactions) {
+      if (t.type !== 'income') continue
+      if (t.paid_by === userId) mine += t.amount
+      else if (t.paid_by === partnerId) partners += t.amount
+    }
+    return { mine, partners }
+  }, [monthTransactions, userId, partnerId])
+
+  // A recurring template counts as "logged this month" once any income
+  // transaction shares its category + destination account — good enough
+  // without demanding an exact amount match (overtime, a bonus, a partial
+  // payment all still count).
+  const expectedIncome = useMemo(() => {
+    return recurringIncome.filter(
+      (r) => !monthTransactions.some((t) => t.type === 'income' && t.category === r.category && t.account_id === r.account_id),
+    )
+  }, [recurringIncome, monthTransactions])
+
+  // Last 6 months of income, oldest first — enough to notice "did the
+  // freelance client pay late this month" without a full history browser.
+  const incomeTrend = useMemo(() => {
+    const now = new Date()
+    const months: { key: string; label: string; amount: number }[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      months.push({ key, label: format(d, 'MMM'), amount: 0 })
+    }
+    const byKey = new Map(months.map((m) => [m.key, m]))
+    for (const t of transactions) {
+      if (t.type !== 'income') continue
+      const m = byKey.get(monthKey(t.occurred_on))
+      if (m) m.amount += t.amount
+    }
+    return months
+  }, [transactions])
 
   // Rollup of whatever categories actually have a limit set — there's no
   // separate top-level number any more, see 0014_budget_category_limits.sql.
@@ -160,6 +222,20 @@ export function BudgetView({ userId, partnerId, partnerLabel, transactions, acco
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-ink-muted">Income</p>
           <p className="mt-1 text-xl font-semibold text-accent">₱{incomeThisMonth.toFixed(2)}</p>
+          {partnerId && incomeThisMonth > 0 && (
+            <p className="mt-1 text-[11px] text-ink-muted">
+              You ₱{incomeByPerson.mine.toFixed(2)} · {partnerLabel} ₱{incomeByPerson.partners.toFixed(2)}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface px-4 py-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-ink-muted">Net this month</p>
+          <p className={['text-sm font-semibold', netThisMonth < 0 ? 'text-ink' : 'text-accent'].join(' ')}>
+            {netThisMonth >= 0 ? '+' : '-'}₱{Math.abs(netThisMonth).toFixed(2)}
+          </p>
         </div>
       </div>
 
@@ -222,6 +298,33 @@ export function BudgetView({ userId, partnerId, partnerLabel, transactions, acco
         </div>
       )}
 
+      <div className="space-y-2 rounded-xl border border-border bg-surface p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-ink-muted">Expected this month</p>
+          <button onClick={onAddRecurring} className="text-xs font-medium text-accent">
+            + Recurring
+          </button>
+        </div>
+        {expectedIncome.length === 0 ? (
+          <p className="text-xs text-ink-muted">{recurringIncome.length === 0 ? 'No recurring income set up.' : 'All logged for this month.'}</p>
+        ) : (
+          expectedIncome.map((r) => (
+            <div key={r.id} className="flex items-center justify-between gap-2 text-xs">
+              <button onClick={() => onEditRecurring(r)} className="min-w-0 flex-1 truncate text-left text-ink hover:text-accent">
+                {iconForCategory(r.category)} {r.label} · day {r.day_of_month}
+              </button>
+              <span className="shrink-0 text-ink-muted">₱{r.amount.toFixed(2)}</span>
+              <button
+                onClick={() => onLogRecurring(r)}
+                className="shrink-0 rounded-full bg-accent-bg px-2.5 py-1 font-medium text-accent"
+              >
+                Log it
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
       {incomeRows.length > 0 && (
         <div className="space-y-2 rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-ink-muted">Income by source this month</p>
@@ -233,6 +336,25 @@ export function BudgetView({ userId, partnerId, partnerLabel, transactions, acco
               <span className="text-ink-muted">₱{amount.toFixed(2)}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {incomeTrend.some((m) => m.amount > 0) && (
+        <div className="space-y-2 rounded-xl border border-border bg-surface p-4">
+          <p className="text-xs text-ink-muted">Income, last 6 months</p>
+          <div className="flex items-end justify-between gap-2" style={{ height: '64px' }}>
+            {incomeTrend.map((m) => {
+              const max = Math.max(...incomeTrend.map((x) => x.amount), 1)
+              return (
+                <div key={m.key} className="flex flex-1 flex-col items-center gap-1">
+                  <div className="flex w-full flex-1 items-end">
+                    <div className="w-full rounded-t bg-accent" style={{ height: `${(m.amount / max) * 100}%`, minHeight: m.amount > 0 ? '2px' : 0 }} />
+                  </div>
+                  <span className="text-[10px] text-ink-muted">{m.label}</span>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

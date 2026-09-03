@@ -26,6 +26,8 @@ export const BUDGET_INCOME_CATEGORIES: BudgetCategoryDef[] = [
   { label: 'Salary', icon: '💼' },
   { label: 'Freelance', icon: '💻' },
   { label: 'Allowance', icon: '💵' },
+  { label: 'Scholarship/Stipend', icon: '🎓' },
+  { label: 'Reimbursement', icon: '🧾' },
   { label: 'Gift', icon: '🎁' },
   { label: 'Interest', icon: '📈' },
 ]

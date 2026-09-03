@@ -16,6 +16,13 @@ export interface BudgetTransaction {
   to_account_id: string | null
 }
 
+interface BudgetEntryPrefill {
+  category: string
+  amount: number
+  account_id: string
+  paid_by: string
+}
+
 interface BudgetEntryModalProps {
   householdId: string
   userId: string
@@ -23,6 +30,11 @@ interface BudgetEntryModalProps {
   partnerLabel: string
   accounts: Account[]
   entry: BudgetTransaction | null
+  // Only used when entry is null — pre-fills a new income transaction from
+  // a recurring template (see RecurringIncomeModal) instead of a blank
+  // form. Never used with an existing entry, which already carries its
+  // own values.
+  prefill?: BudgetEntryPrefill
   onClose: () => void
   onSaved: () => void
   onDeleted: () => void
@@ -41,21 +53,23 @@ export function BudgetEntryModal({
   partnerLabel,
   accounts,
   entry,
+  prefill,
   onClose,
   onSaved,
   onDeleted,
 }: BudgetEntryModalProps) {
-  const [type, setType] = useState<'income' | 'expense'>(entry?.type === 'income' ? 'income' : 'expense')
-  const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
-  const [category, setCategory] = useState(entry?.category ?? '')
+  const [type, setType] = useState<'income' | 'expense'>(entry?.type === 'income' || prefill ? 'income' : 'expense')
+  const [amount, setAmount] = useState(entry ? String(entry.amount) : prefill ? String(prefill.amount) : '')
+  const [category, setCategory] = useState(entry?.category ?? prefill?.category ?? '')
   const [customMode, setCustomMode] = useState(() => {
-    if (!entry) return false
-    const list = entry.type === 'income' ? BUDGET_INCOME_CATEGORIES : BUDGET_CATEGORIES
-    return !list.some((c) => c.label === entry.category)
+    const value = entry?.category ?? prefill?.category
+    if (!value) return false
+    const list = entry?.type === 'income' || prefill ? BUDGET_INCOME_CATEGORIES : BUDGET_CATEGORIES
+    return !list.some((c) => c.label === value)
   })
   const [description, setDescription] = useState(entry?.description ?? '')
-  const [accountId, setAccountId] = useState(entry?.account_id ?? accounts[0]?.id ?? '')
-  const [paidBy, setPaidBy] = useState(entry?.paid_by ?? userId)
+  const [accountId, setAccountId] = useState(entry?.account_id ?? prefill?.account_id ?? accounts[0]?.id ?? '')
+  const [paidBy, setPaidBy] = useState(entry?.paid_by ?? prefill?.paid_by ?? userId)
   const [splitMode, setSplitMode] = useState<'shared' | 'personal'>(entry?.split_mode ?? 'personal')
   const [occurredOn, setOccurredOn] = useState(entry?.occurred_on ?? todayDateString())
   const [saving, setSaving] = useState(false)
@@ -242,8 +256,8 @@ export function BudgetEntryModal({
                 onChange={(e) => setPaidBy(e.target.value)}
                 className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               >
-                <option value={userId}>You paid</option>
-                {partnerId && <option value={partnerId}>{partnerLabel} paid</option>}
+                <option value={userId}>{type === 'income' ? 'You received' : 'You paid'}</option>
+                {partnerId && <option value={partnerId}>{type === 'income' ? `${partnerLabel} received` : `${partnerLabel} paid`}</option>}
               </select>
             </div>
 
