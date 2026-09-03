@@ -3,6 +3,7 @@ import {
   addDays,
   addMonths,
   addWeeks,
+  endOfDay,
   endOfMonth,
   endOfWeek,
   format,
@@ -329,7 +330,17 @@ export function Today() {
     return user ? (mineOnly ? all.filter((i) => i.ownerId === user.id) : all) : all
   }, [rawEvents, rawTasks, rawReadings, readingDone, view, anchorDate, mineOnly, user, toggleTask, toggleReading])
 
-  const overlappingKeys = useMemo(() => getOverlappingItemIds(agendaItems), [agendaItems])
+  // agendaItems deliberately includes items just outside what's on screen
+  // (events padded ±1 day for boundary-spanning recurrence; tasks/readings
+  // aren't date-filtered at all) — narrow to what this view actually
+  // renders before computing overlaps, or a badge can point at a
+  // "conflict" that's on an adjacent day and never shown, with nothing
+  // else visible to explain it.
+  const overlappingKeys = useMemo(() => {
+    const { start, end } = rangeForView(view, anchorDate)
+    const visible = agendaItems.filter((i) => i.start >= startOfDay(start) && i.start <= endOfDay(end))
+    return getOverlappingItemIds(visible)
+  }, [agendaItems, view, anchorDate])
 
   function openItem(item: AgendaItem) {
     if (item.kind === 'event') setOpenEventId(item.eventId)
