@@ -1,4 +1,5 @@
 import { formatDuration } from '../../lib/duration'
+import { blockEnd, MIN_BLOCK_MINUTES } from '../../lib/overlap'
 import type { AgendaItem } from './types'
 
 interface DayTimelineProps {
@@ -15,9 +16,6 @@ interface DayTimelineProps {
 // 1.5px/minute rather than 1 — more breathing room between gridlines so a
 // block's title/time/owner line doesn't feel cramped against its neighbors.
 const PX_PER_MINUTE = 1.5
-// Tasks (and events with no real duration) get a legible minimum block
-// height rather than collapsing to a sliver — not a real duration.
-const MIN_BLOCK_MINUTES = 30
 const DEFAULT_RANGE_START_HOUR = 7
 const DEFAULT_RANGE_END_HOUR = 20
 
@@ -179,14 +177,6 @@ export function DayTimeline({ items, ownerLabel, onOpenItem, overlappingKeys, on
 
   if (timed.length === 0 && untimed.length === 0) {
     return <p className="text-sm text-ink-muted">Nothing scheduled.</p>
-  }
-
-  const blockEnd = (item: AgendaItem) => {
-    // Tasks/events both carry a real end when one was set (item.end > item.start);
-    // otherwise fall back to a legible minimum block rather than a sliver.
-    const durationMs = Math.max(item.end.getTime() - item.start.getTime(), 0)
-    const minMs = MIN_BLOCK_MINUTES * 60000
-    return new Date(item.start.getTime() + Math.max(durationMs, minMs))
   }
 
   const sortedTimed = [...timed].sort((a, b) => a.start.getTime() - b.start.getTime())
