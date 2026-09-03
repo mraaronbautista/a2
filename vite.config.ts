@@ -22,12 +22,13 @@ export default defineConfig({
       manifest: {
         name: 'A²',
         short_name: 'A²',
-        description: 'Shared course, task, and note tracker for two law students.',
+        description: 'Shared life infrastructure for two — courses and tasks today, whatever comes next after that.',
         theme_color: '#1b2436',
         background_color: '#faf7f2',
         display: 'standalone',
         icons: [
           { src: '/icons.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
         ],
       },
     }),

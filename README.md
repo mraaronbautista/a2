@@ -1,8 +1,9 @@
 # A²
 
-A shared PWA for two law students to manage courses, readings, tasks, and notes, and keep each
-other accountable. Built with React + Vite, Supabase (Postgres, Auth, Storage), and deployed on
-Netlify. Installable to the home screen on iPad/iPhone/Mac.
+A shared PWA for two people to run their life together — courses, readings, tasks, notes, a joint
+budget, and shared goals today; law school is the current chapter, not the whole point. Built with
+React + Vite, Supabase (Postgres, Auth, Storage), and deployed on Netlify. Installable to the home
+screen on iPad/iPhone/Mac.
 
 **Status: MVP Phase 1 complete**, now iterating post-launch. Auth, full database schema, and a
 responsive shell are done. Nav is four screens: **Timeline** (merged with Calendar — Day/Week/Month

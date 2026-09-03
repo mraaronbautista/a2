@@ -1,4 +1,827 @@
-// Placeholder until the schema is pushed and types are generated with:
-//   supabase gen types typescript --linked > src/types/database.ts
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Database = any
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      budget_settings: {
+        Row: {
+          category_limits: Json
+          household_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_limits?: Json
+          household_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_limits?: Json
+          household_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_settings_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: true
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_transactions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          household_id: string
+          id: string
+          occurred_on: string
+          paid_by: string
+          split_mode: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          household_id: string
+          id?: string
+          occurred_on?: string
+          paid_by: string
+          split_mode?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          household_id?: string
+          id?: string
+          occurred_on?: string
+          paid_by?: string
+          split_mode?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_transactions_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_events: {
+        Row: {
+          color: string | null
+          course_id: string | null
+          created_at: string
+          end_at: string | null
+          household_id: string
+          id: string
+          owner_id: string
+          recurrence_rule: string | null
+          start_at: string
+          title: string
+          visibility: string
+        }
+        Insert: {
+          color?: string | null
+          course_id?: string | null
+          created_at?: string
+          end_at?: string | null
+          household_id: string
+          id?: string
+          owner_id: string
+          recurrence_rule?: string | null
+          start_at: string
+          title: string
+          visibility?: string
+        }
+        Update: {
+          color?: string | null
+          course_id?: string | null
+          created_at?: string
+          end_at?: string | null
+          household_id?: string
+          id?: string
+          owner_id?: string
+          recurrence_rule?: string | null
+          start_at?: string
+          title?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          color: string | null
+          created_at: string
+          household_id: string
+          id: string
+          is_shared: boolean
+          name: string
+          owner_id: string
+          professor: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          household_id: string
+          id?: string
+          is_shared?: boolean
+          name: string
+          owner_id: string
+          professor?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          household_id?: string
+          id?: string
+          is_shared?: boolean
+          name?: string
+          owner_id?: string
+          professor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          household_id: string
+          id: string
+          owner_id: string
+          target_date: string | null
+          title: string
+          visibility: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          household_id: string
+          id?: string
+          owner_id: string
+          target_date?: string | null
+          title: string
+          visibility?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          household_id?: string
+          id?: string
+          owner_id?: string
+          target_date?: string | null
+          title?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      household_members: {
+        Row: {
+          created_at: string
+          household_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          case_brief_dissent: string | null
+          case_brief_facts: string | null
+          case_brief_holding: string | null
+          case_brief_issue: string | null
+          case_brief_reasoning: string | null
+          content: Json | null
+          course_id: string | null
+          created_at: string
+          household_id: string
+          id: string
+          last_edited_by: string | null
+          owner_id: string
+          tags: string[]
+          title: string
+          type: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          case_brief_dissent?: string | null
+          case_brief_facts?: string | null
+          case_brief_holding?: string | null
+          case_brief_issue?: string | null
+          case_brief_reasoning?: string | null
+          content?: Json | null
+          course_id?: string | null
+          created_at?: string
+          household_id: string
+          id?: string
+          last_edited_by?: string | null
+          owner_id: string
+          tags?: string[]
+          title: string
+          type?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          case_brief_dissent?: string | null
+          case_brief_facts?: string | null
+          case_brief_holding?: string | null
+          case_brief_issue?: string | null
+          case_brief_reasoning?: string | null
+          content?: Json | null
+          course_id?: string | null
+          created_at?: string
+          household_id?: string
+          id?: string
+          last_edited_by?: string | null
+          owner_id?: string
+          tags?: string[]
+          title?: string
+          type?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nudges: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          household_id: string
+          id: string
+          item_id: string
+          item_type: string
+          message: string | null
+          push_sent_at: string | null
+          status: string
+          to_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          household_id: string
+          id?: string
+          item_id: string
+          item_type: string
+          message?: string | null
+          push_sent_at?: string | null
+          status?: string
+          to_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          household_id?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          message?: string | null
+          push_sent_at?: string | null
+          status?: string
+          to_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nudges_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          keys: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          keys: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          keys?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reading_items: {
+        Row: {
+          course_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          order_index: number
+          recurrence_rule: string | null
+          source_link: string | null
+          title: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          order_index?: number
+          recurrence_rule?: string | null
+          source_link?: string | null
+          title: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          order_index?: number
+          recurrence_rule?: string | null
+          source_link?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_items_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_status: {
+        Row: {
+          completed_at: string | null
+          prep_status: string
+          reading_item_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          prep_status?: string
+          reading_item_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          prep_status?: string
+          reading_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_status_reading_item_id_fkey"
+            columns: ["reading_item_id"]
+            isOneToOne: false
+            referencedRelation: "reading_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          attachments: Json
+          checklist: Json
+          comments: Json
+          completed_at: string | null
+          course_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          end_at: string | null
+          household_id: string
+          id: string
+          owner_id: string
+          recurrence_rule: string | null
+          reminder_sent_at: string | null
+          title: string
+          visibility: string
+        }
+        Insert: {
+          attachments?: Json
+          checklist?: Json
+          comments?: Json
+          completed_at?: string | null
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          end_at?: string | null
+          household_id: string
+          id?: string
+          owner_id: string
+          recurrence_rule?: string | null
+          reminder_sent_at?: string | null
+          title: string
+          visibility?: string
+        }
+        Update: {
+          attachments?: Json
+          checklist?: Json
+          comments?: Json
+          completed_at?: string | null
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          end_at?: string | null
+          household_id?: string
+          id?: string
+          owner_id?: string
+          recurrence_rule?: string | null
+          reminder_sent_at?: string | null
+          title?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thoughts: {
+        Row: {
+          archived: boolean
+          body: string
+          comments: Json
+          created_at: string
+          household_id: string
+          id: string
+          owner_id: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          archived?: boolean
+          body: string
+          comments?: Json
+          created_at?: string
+          household_id: string
+          id?: string
+          owner_id: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          archived?: boolean
+          body?: string
+          comments?: Json
+          created_at?: string
+          household_id?: string
+          id?: string
+          owner_id?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thoughts_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      add_thought_comment: {
+        Args: { p_body: string; p_thought_id: string }
+        Returns: {
+          archived: boolean
+          body: string
+          comments: Json
+          created_at: string
+          household_id: string
+          id: string
+          owner_id: string
+          updated_at: string
+          visibility: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "thoughts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      is_household_member: {
+        Args: { target_household_id: string }
+        Returns: boolean
+      }
+      same_household: { Args: { target_user_id: string }; Returns: boolean }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const

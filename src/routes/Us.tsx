@@ -65,7 +65,7 @@ export function Us() {
       supabase.from('goals').select('id, owner_id, title, target_date, visibility, completed_at').order('created_at', { ascending: false }),
     ])
 
-    setThoughts((thoughtsRes.data ?? []) as Thought[])
+    setThoughts((thoughtsRes.data ?? []) as unknown as Thought[])
     setGoals((goalsRes.data ?? []) as Goal[])
     setLoading(false)
   }, [householdId, user])

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import type { Json } from '../types/database'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
 
@@ -40,8 +41,11 @@ export async function subscribeToPush(userId: string) {
   })
 
   const json = subscription.toJSON()
+  // A subscription that just succeeded always has both — toJSON()'s return
+  // type marks them optional per the DOM lib spec, not because they can
+  // actually be missing here.
   await supabase.from('push_subscriptions').upsert(
-    { user_id: userId, endpoint: json.endpoint, keys: json.keys },
+    { user_id: userId, endpoint: json.endpoint!, keys: json.keys as unknown as Json },
     { onConflict: 'user_id,endpoint' },
   )
   return subscription

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
+import type { Json } from '../../types/database'
 import { useProfiles } from '../../hooks/useProfiles'
 import { AttachmentIcon, DeleteIcon, DuplicateIcon, EditIcon } from '../layout/icons'
 import { TaskComments, type TaskComment } from './TaskComments'
@@ -121,7 +122,7 @@ export function TaskDetailModal({ taskId, userId, householdId, courses, onClose,
   async function updateComments(next: TaskComment[]) {
     if (!task) return
     setTask({ ...task, comments: next })
-    await supabase.from('tasks').update({ comments: next }).eq('id', task.id)
+    await supabase.from('tasks').update({ comments: next as unknown as Json }).eq('id', task.id)
   }
 
   function addSubtask() {
@@ -151,7 +152,7 @@ export function TaskDetailModal({ taskId, userId, householdId, courses, onClose,
         course_id: courseId || null,
         description: notes || null,
         visibility,
-        checklist,
+        checklist: checklist as unknown as Json,
       })
       .eq('id', task.id)
     setSaving(false)
@@ -181,7 +182,7 @@ export function TaskDetailModal({ taskId, userId, householdId, courses, onClose,
       end_at: task.end_at,
       course_id: task.course_id,
       visibility: task.visibility,
-      checklist: task.checklist.map((c) => ({ ...c, done: false })),
+      checklist: task.checklist.map((c) => ({ ...c, done: false })) as unknown as Json,
     })
     setDuplicating(false)
     onSaved()
@@ -199,7 +200,7 @@ export function TaskDetailModal({ taskId, userId, householdId, courses, onClose,
     if (!error) {
       const { data } = supabase.storage.from('task-attachments').getPublicUrl(path)
       const nextAttachments = [...task.attachments, { url: data.publicUrl, name: file.name }]
-      await supabase.from('tasks').update({ attachments: nextAttachments }).eq('id', task.id)
+      await supabase.from('tasks').update({ attachments: nextAttachments as unknown as Json }).eq('id', task.id)
       setTask({ ...task, attachments: nextAttachments })
     }
     setUploading(false)
@@ -208,7 +209,7 @@ export function TaskDetailModal({ taskId, userId, householdId, courses, onClose,
   async function removeAttachment(url: string) {
     if (!task) return
     const nextAttachments = task.attachments.filter((a) => a.url !== url)
-    await supabase.from('tasks').update({ attachments: nextAttachments }).eq('id', task.id)
+    await supabase.from('tasks').update({ attachments: nextAttachments as unknown as Json }).eq('id', task.id)
     setTask({ ...task, attachments: nextAttachments })
   }
 

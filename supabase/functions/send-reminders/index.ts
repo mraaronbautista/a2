@@ -70,7 +70,8 @@ async function handleNudge(nudgeId: string) {
   await sendToUser(nudge.to_user_id, {
     title: `${senderName} flagged a ${nudge.item_type} for you`,
     body: nudge.message ?? 'Take a look when you get a chance.',
-    url: '/us',
+    // Nudges live on Timeline (the bell icon) now, not Us.
+    url: '/',
   })
 
   await supabase.from('nudges').update({ push_sent_at: new Date().toISOString() }).eq('id', nudgeId)
