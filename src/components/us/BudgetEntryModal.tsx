@@ -27,6 +27,7 @@ interface BudgetEntryModalProps {
   householdId: string
   userId: string
   partnerId: string | null
+  myLabel: string
   partnerLabel: string
   accounts: Account[]
   entry: BudgetTransaction | null
@@ -50,6 +51,7 @@ export function BudgetEntryModal({
   householdId,
   userId,
   partnerId,
+  myLabel,
   partnerLabel,
   accounts,
   entry,
@@ -256,8 +258,10 @@ export function BudgetEntryModal({
                 onChange={(e) => setPaidBy(e.target.value)}
                 className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               >
-                <option value={userId}>{type === 'income' ? 'You received' : 'You paid'}</option>
-                {partnerId && <option value={partnerId}>{type === 'income' ? `${partnerLabel} received` : `${partnerLabel} paid`}</option>}
+                <option value={userId}>{type === 'income' ? `${myLabel} got paid` : 'You paid'}</option>
+                {partnerId && (
+                  <option value={partnerId}>{type === 'income' ? `${partnerLabel} got paid` : `${partnerLabel} paid`}</option>
+                )}
               </select>
             </div>
 

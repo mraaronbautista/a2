@@ -18,6 +18,7 @@ interface RecurringIncomeModalProps {
   householdId: string
   userId: string
   partnerId: string | null
+  myLabel: string
   partnerLabel: string
   accounts: Account[]
   template: RecurringIncome | null
@@ -30,6 +31,7 @@ export function RecurringIncomeModal({
   householdId,
   userId,
   partnerId,
+  myLabel,
   partnerLabel,
   accounts,
   template,
@@ -171,7 +173,7 @@ export function RecurringIncomeModal({
               onChange={(e) => setPaidBy(e.target.value)}
               className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
             >
-              <option value={userId}>You</option>
+              <option value={userId}>{myLabel}</option>
               {partnerId && <option value={partnerId}>{partnerLabel}</option>}
             </select>
           </div>

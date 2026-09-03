@@ -8,6 +8,7 @@ import type { RecurringIncome } from './RecurringIncomeModal'
 interface BudgetViewProps {
   userId: string
   partnerId: string | null
+  myLabel: string
   partnerLabel: string
   transactions: BudgetTransaction[]
   accounts: Account[]
@@ -34,6 +35,7 @@ const TRANSFER_ICON: Record<Account['kind'], string> = { debt: '💳', savings: 
 export function BudgetView({
   userId,
   partnerId,
+  myLabel,
   partnerLabel,
   transactions,
   accounts,
@@ -224,7 +226,7 @@ export function BudgetView({
           <p className="mt-1 text-xl font-semibold text-accent">₱{incomeThisMonth.toFixed(2)}</p>
           {partnerId && incomeThisMonth > 0 && (
             <p className="mt-1 text-[11px] text-ink-muted">
-              You ₱{incomeByPerson.mine.toFixed(2)} · {partnerLabel} ₱{incomeByPerson.partners.toFixed(2)}
+              {myLabel} ₱{incomeByPerson.mine.toFixed(2)} · {partnerLabel} ₱{incomeByPerson.partners.toFixed(2)}
             </p>
           )}
         </div>

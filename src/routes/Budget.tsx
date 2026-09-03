@@ -87,6 +87,7 @@ export function Budget() {
   }
 
   const partnerLabel = partnerId ? (profiles[partnerId] ?? 'partner') : 'partner'
+  const myLabel = user ? (profiles[user.id] ?? 'you') : 'you'
   const activeAccounts = accounts.filter((a) => !a.archived)
 
   return (
@@ -119,6 +120,7 @@ export function Budget() {
         <BudgetView
           userId={user.id}
           partnerId={partnerId}
+          myLabel={myLabel}
           partnerLabel={partnerLabel}
           transactions={transactions}
           accounts={activeAccounts}
@@ -152,6 +154,7 @@ export function Budget() {
           householdId={householdId}
           userId={user.id}
           partnerId={partnerId}
+          myLabel={myLabel}
           partnerLabel={partnerLabel}
           accounts={activeAccounts}
           entry={entry === 'new' ? null : entry}
@@ -222,6 +225,7 @@ export function Budget() {
           householdId={householdId}
           userId={user.id}
           partnerId={partnerId}
+          myLabel={myLabel}
           partnerLabel={partnerLabel}
           accounts={activeAccounts}
           template={recurringModal === 'new' ? null : recurringModal}
