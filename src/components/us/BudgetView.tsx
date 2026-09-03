@@ -45,6 +45,20 @@ export function BudgetView({ userId, partnerId, partnerLabel, transactions, acco
     [accountMap],
   )
 
+  // Narrower than transferCountsAsSpend, and only for the owes-balance
+  // below: a debt payment settles a purchase that was already charged to
+  // that account — and that charge already moved the balance once, as a
+  // regular shared expense, when it happened. Counting the payoff too
+  // would split the same money twice. A savings contribution has no such
+  // earlier event to double up with, so it still counts.
+  const transferCountsForBalance = useCallback(
+    (t: BudgetTransaction) => {
+      if (t.type !== 'transfer' || !t.to_account_id) return false
+      return accountMap.get(t.to_account_id)?.kind === 'savings'
+    },
+    [accountMap],
+  )
+
   const spentThisMonth = useMemo(
     () =>
       monthTransactions
@@ -106,13 +120,14 @@ export function BudgetView({ userId, partnerId, partnerLabel, transactions, acco
     let paidByMe = 0
     let paidByPartner = 0
     for (const t of transactions) {
-      if (t.type === 'income' || t.split_mode !== 'shared') continue
-      if (!transferCountsAsSpend(t) && t.type === 'transfer') continue
+      if (t.split_mode !== 'shared') continue
+      if (t.type === 'income') continue
+      if (t.type === 'transfer' && !transferCountsForBalance(t)) continue
       if (t.paid_by === userId) paidByMe += t.amount
       else if (t.paid_by === partnerId) paidByPartner += t.amount
     }
     return (paidByPartner - paidByMe) / 2
-  }, [transactions, userId, partnerId, transferCountsAsSpend])
+  }, [transactions, userId, partnerId, transferCountsForBalance])
 
   const recent = useMemo(() => [...transactions].sort((a, b) => b.occurred_on.localeCompare(a.occurred_on)).slice(0, 20), [transactions])
 
