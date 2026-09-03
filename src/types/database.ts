@@ -39,6 +39,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          archived: boolean
+          created_at: string
+          created_by: string
+          household_id: string
+          id: string
+          kind: string
+          name: string
+          starting_balance: number
+          target_amount: number | null
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          created_by: string
+          household_id: string
+          id?: string
+          kind: string
+          name: string
+          starting_balance?: number
+          target_amount?: number | null
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          created_by?: string
+          household_id?: string
+          id?: string
+          kind?: string
+          name?: string
+          starting_balance?: number
+          target_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_settings: {
         Row: {
           category_limits: Json
@@ -67,8 +111,9 @@ export type Database = {
       }
       budget_transactions: {
         Row: {
+          account_id: string | null
           amount: number
-          category: string
+          category: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -77,12 +122,14 @@ export type Database = {
           occurred_on: string
           paid_by: string
           split_mode: string
+          to_account_id: string | null
           type: string
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
-          category?: string
+          category?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -91,12 +138,14 @@ export type Database = {
           occurred_on?: string
           paid_by: string
           split_mode?: string
+          to_account_id?: string | null
           type: string
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
-          category?: string
+          category?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -105,15 +154,30 @@ export type Database = {
           occurred_on?: string
           paid_by?: string
           split_mode?: string
+          to_account_id?: string | null
           type?: string
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "budget_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "budget_transactions_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]

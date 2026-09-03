@@ -20,6 +20,20 @@ export const BUDGET_CATEGORIES: BudgetCategoryDef[] = [
   { label: 'Gifts', icon: '🎁' },
 ]
 
+// A separate, much shorter list for income — "Food & Drink" makes no
+// sense as a source of money coming in.
+export const BUDGET_INCOME_CATEGORIES: BudgetCategoryDef[] = [
+  { label: 'Salary', icon: '💼' },
+  { label: 'Freelance', icon: '💻' },
+  { label: 'Allowance', icon: '💵' },
+  { label: 'Gift', icon: '🎁' },
+  { label: 'Interest', icon: '📈' },
+]
+
 export function iconForCategory(category: string): string {
-  return BUDGET_CATEGORIES.find((c) => c.label === category)?.icon ?? '🏷️'
+  return (
+    BUDGET_CATEGORIES.find((c) => c.label === category)?.icon ??
+    BUDGET_INCOME_CATEGORIES.find((c) => c.label === category)?.icon ??
+    '🏷️'
+  )
 }

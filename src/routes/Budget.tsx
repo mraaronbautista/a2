@@ -11,8 +11,13 @@ import { SettingsIcon } from '../components/layout/icons'
 import { BudgetView } from '../components/us/BudgetView'
 import { BudgetEntryModal, type BudgetTransaction } from '../components/us/BudgetEntryModal'
 import { BudgetCategoryLimitsModal } from '../components/us/BudgetCategoryLimitsModal'
+import { AccountsView } from '../components/us/AccountsView'
+import { AccountModal, type Account } from '../components/us/AccountModal'
+import { TransferModal } from '../components/us/TransferModal'
 
-const REALTIME_TABLES = ['budget_transactions', 'budget_settings']
+const REALTIME_TABLES = ['budget_transactions', 'budget_settings', 'accounts']
+const SUBVIEWS = ['overview', 'accounts'] as const
+type SubView = (typeof SUBVIEWS)[number]
 
 export function Budget() {
   const { user } = useAuth()
@@ -21,9 +26,13 @@ export function Budget() {
   const partnerId = usePartnerId()
   const { openSettings } = useSettings()
 
+  const [subView, setSubView] = useState<SubView>('overview')
   const [transactions, setTransactions] = useState<BudgetTransaction[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [categoryLimits, setCategoryLimits] = useState<Record<string, number>>({})
   const [entry, setEntry] = useState<BudgetTransaction | 'new' | null>(null)
+  const [accountModal, setAccountModal] = useState<Account | 'new' | null>(null)
+  const [transferOpen, setTransferOpen] = useState(false)
   const [limitsOpen, setLimitsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -31,16 +40,18 @@ export function Budget() {
     if (!householdId) return
     setLoading(true)
 
-    const [budgetRes, settingsRes] = await Promise.all([
+    const [budgetRes, settingsRes, accountsRes] = await Promise.all([
       supabase
         .from('budget_transactions')
-        .select('id, type, amount, category, description, paid_by, split_mode, occurred_on')
+        .select('id, type, amount, category, description, paid_by, split_mode, occurred_on, account_id, to_account_id')
         .order('occurred_on', { ascending: false }),
       supabase.from('budget_settings').select('category_limits').eq('household_id', householdId).maybeSingle(),
+      supabase.from('accounts').select('id, name, kind, target_amount, starting_balance, archived').order('created_at', { ascending: true }),
     ])
 
     setTransactions((budgetRes.data ?? []) as BudgetTransaction[])
     setCategoryLimits((settingsRes.data as { category_limits: Record<string, number> } | null)?.category_limits ?? {})
+    setAccounts((accountsRes.data ?? []) as Account[])
     setLoading(false)
   }, [householdId])
 
@@ -50,13 +61,17 @@ export function Budget() {
 
   useRealtimeRefresh(REALTIME_TABLES, load)
 
-  useQuickAdd(() => setEntry('new'))
+  // + adds a transaction on Overview, or a new account on Accounts —
+  // transferring/paying down a debt has its own visible button there
+  // instead, since it needs at least two existing accounts to make sense.
+  useQuickAdd(subView === 'overview' ? () => setEntry('new') : () => setAccountModal('new'))
 
   if (householdLoading || loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
   }
 
   const partnerLabel = partnerId ? (profiles[partnerId] ?? 'partner') : 'partner'
+  const activeAccounts = accounts.filter((a) => !a.archived)
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6">
@@ -67,15 +82,42 @@ export function Budget() {
         </button>
       </div>
 
-      {user && householdId && (
+      <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
+        {(
+          [
+            ['overview', 'Overview'],
+            ['accounts', 'Accounts'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            onClick={() => setSubView(value)}
+            className={['rounded-full px-3 py-1 font-medium', subView === value ? 'bg-accent-bg text-accent' : 'text-ink-muted'].join(' ')}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {subView === 'overview' && user && householdId && (
         <BudgetView
           userId={user.id}
           partnerId={partnerId}
           partnerLabel={partnerLabel}
           transactions={transactions}
+          accounts={activeAccounts}
           categoryLimits={categoryLimits}
           onEdit={(t) => setEntry(t)}
           onEditLimits={() => setLimitsOpen(true)}
+        />
+      )}
+
+      {subView === 'accounts' && (
+        <AccountsView
+          accounts={accounts}
+          transactions={transactions}
+          onEdit={(a) => setAccountModal(a)}
+          onTransfer={() => setTransferOpen(true)}
         />
       )}
 
@@ -85,6 +127,7 @@ export function Budget() {
           userId={user.id}
           partnerId={partnerId}
           partnerLabel={partnerLabel}
+          accounts={activeAccounts}
           entry={entry === 'new' ? null : entry}
           onClose={() => setEntry(null)}
           onSaved={() => {
@@ -93,6 +136,38 @@ export function Budget() {
           }}
           onDeleted={() => {
             setEntry(null)
+            load()
+          }}
+        />
+      )}
+
+      {accountModal && householdId && user && (
+        <AccountModal
+          householdId={householdId}
+          userId={user.id}
+          account={accountModal === 'new' ? null : accountModal}
+          onClose={() => setAccountModal(null)}
+          onSaved={() => {
+            setAccountModal(null)
+            load()
+          }}
+          onDeleted={() => {
+            setAccountModal(null)
+            load()
+          }}
+        />
+      )}
+
+      {transferOpen && householdId && user && (
+        <TransferModal
+          householdId={householdId}
+          userId={user.id}
+          partnerId={partnerId}
+          partnerLabel={partnerLabel}
+          accounts={activeAccounts}
+          onClose={() => setTransferOpen(false)}
+          onSaved={() => {
+            setTransferOpen(false)
             load()
           }}
         />
