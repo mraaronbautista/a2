@@ -18,7 +18,7 @@ const AUTOSAVE_DELAY_MS = 900
 // like a genuine remote change and trigger a reload. Ignore any realtime
 // event this soon after our own save; a real edit from the partner is
 // vanishingly unlikely to land in this exact window.
-const SELF_ECHO_WINDOW_MS = 4000
+const SELF_ECHO_WINDOW_MS = 6000
 
 const REALTIME_TABLES = ['notes']
 
@@ -145,6 +145,12 @@ export function NoteDetail() {
 
     const updatedAt = new Date().toISOString()
 
+    // Arm the self-echo guard before the write goes out, not after it
+    // resolves — the realtime notification for this exact update can
+    // otherwise arrive (over its own, separate websocket connection)
+    // before this await returns, landing outside the guard window entirely.
+    justSavedAtRef.current = Date.now()
+
     await supabase
       .from('notes')
       .update({
@@ -163,7 +169,6 @@ export function NoteDetail() {
       })
       .eq('id', note.id)
 
-    justSavedAtRef.current = Date.now()
     setNote((prev) => (prev ? { ...prev, last_edited_by: user.id, updated_at: updatedAt } : prev))
     setSaving(false)
     setDirty(false)
