@@ -32,6 +32,7 @@ interface NoteRow {
   title: string
   type: 'case_brief' | 'freeform'
   visibility: 'private' | 'shared'
+  space: 'law' | 'personal'
   owner_id: string
   last_edited_by: string | null
   course_id: string | null
@@ -78,7 +79,7 @@ export function NoteDetail() {
       supabase
         .from('notes')
         .select(
-          'id, title, type, visibility, owner_id, last_edited_by, course_id, tags, updated_at, content, case_brief_facts, case_brief_issue, case_brief_holding, case_brief_reasoning, case_brief_dissent',
+          'id, title, type, visibility, space, owner_id, last_edited_by, course_id, tags, updated_at, content, case_brief_facts, case_brief_issue, case_brief_holding, case_brief_reasoning, case_brief_dissent',
         )
         .eq('id', noteId)
         .single(),
@@ -203,7 +204,7 @@ export function NoteDetail() {
   async function handleDelete() {
     if (!note || !window.confirm(`Delete "${note.title || 'this note'}"?`)) return
     await supabase.from('notes').delete().eq('id', note.id)
-    navigate('/notes')
+    navigate(note.space === 'personal' ? '/us?view=notes' : '/notes')
   }
 
   if (loading) {
@@ -223,8 +224,8 @@ export function NoteDetail() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6 pb-16">
-      <Link to="/notes" className="text-sm text-ink-muted hover:text-ink">
-        ← Notes
+      <Link to={note.space === 'personal' ? '/us?view=notes' : '/notes'} className="text-sm text-ink-muted hover:text-ink">
+        {note.space === 'personal' ? '← Us' : '← Law'}
       </Link>
 
       <div className="flex items-start justify-between gap-3">
@@ -262,7 +263,7 @@ export function NoteDetail() {
 
       {canManage && (
         <div className="flex flex-wrap items-center gap-2">
-          {courses.length > 0 && (
+          {note.space === 'law' && courses.length > 0 && (
             <select
               value={courseId}
               onChange={(e) => markDirty(setCourseId)(e.target.value)}

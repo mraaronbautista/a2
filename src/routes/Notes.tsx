@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
@@ -14,6 +14,8 @@ import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon } from '../components/layout/icons'
 
 const REALTIME_TABLES = ['notes', 'courses', 'reading_items']
+const SUBVIEW_ORDER = ['notes', 'courses'] as const
+const SWIPE_MIN_DISTANCE = 60
 
 interface Course {
   id: string
@@ -67,6 +69,7 @@ export function Notes() {
       supabase
         .from('notes')
         .select('id, title, type, visibility, owner_id, course_id, updated_at, courses(name, color)')
+        .eq('space', 'law')
         .order('updated_at', { ascending: false }),
       supabase.from('courses').select('id, name, professor, color, is_shared').order('created_at', { ascending: true }),
       supabase.from('reading_items').select('course_id'),
@@ -94,6 +97,29 @@ export function Notes() {
     setSearchParams(view === 'courses' ? { view } : {}, { replace: true })
   }
 
+  // Same gesture as Us's Goals/Thoughts swipe (touchstart/touchend only,
+  // horizontal-dominance + minimum-distance check, no preventDefault) —
+  // with only two sub-views, either direction just toggles between them.
+  const subViewSwipeStart = useRef<{ x: number; y: number } | null>(null)
+
+  function handleSubViewSwipeStart(e: ReactTouchEvent) {
+    const t = e.touches[0]
+    subViewSwipeStart.current = { x: t.clientX, y: t.clientY }
+  }
+
+  function handleSubViewSwipeEnd(e: ReactTouchEvent) {
+    const start = subViewSwipeStart.current
+    subViewSwipeStart.current = null
+    if (!start) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    const idx = SUBVIEW_ORDER.indexOf(subView)
+    const nextIdx = dx < 0 ? (idx + 1) % SUBVIEW_ORDER.length : (idx - 1 + SUBVIEW_ORDER.length) % SUBVIEW_ORDER.length
+    selectSubView(SUBVIEW_ORDER[nextIdx])
+  }
+
   // The persistent "+" in AppShell adds whatever this tab is currently
   // showing — a note or a course — instead of always opening Timeline's
   // task/event quick-add.
@@ -116,7 +142,7 @@ export function Notes() {
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-navy">Notes</h1>
+        <h1 className="text-2xl font-semibold text-navy">Law</h1>
         <div className="flex items-center gap-2">
           <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
             <SettingsIcon className="h-5 w-5" />
@@ -141,75 +167,77 @@ export function Notes() {
         ))}
       </div>
 
-      {subView === 'notes' && (
-        <>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Search notes…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-            />
-            {courses.length > 0 && (
-              <select
-                value={courseFilter}
-                onChange={(e) => setCourseFilter(e.target.value)}
-                className="w-32 shrink-0 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-              >
-                <option value="">All courses</option>
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+      <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd} className="space-y-4">
+        {subView === 'notes' && (
+          <>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Search notes…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              />
+              {courses.length > 0 && (
+                <select
+                  value={courseFilter}
+                  onChange={(e) => setCourseFilter(e.target.value)}
+                  className="w-32 shrink-0 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                >
+                  <option value="">All courses</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
 
-          {filtered.length === 0 ? (
-            <p className="text-sm text-ink-muted">{notes.length === 0 ? 'No notes yet.' : 'No notes match.'}</p>
+            {filtered.length === 0 ? (
+              <p className="text-sm text-ink-muted">{notes.length === 0 ? 'No notes yet.' : 'No notes match.'}</p>
+            ) : (
+              <div className="space-y-2">
+                {filtered.map((n) => (
+                  <NoteCard
+                    key={n.id}
+                    id={n.id}
+                    title={n.title}
+                    type={n.type}
+                    courseName={n.courses?.name ?? null}
+                    courseColor={n.courses?.color ?? null}
+                    visibility={n.visibility}
+                    updatedAt={n.updated_at}
+                    ownerLabel={user && n.owner_id !== user.id ? profiles[n.owner_id] : undefined}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {subView === 'courses' &&
+          (courses.length === 0 ? (
+            <p className="text-sm text-ink-muted">No courses yet — add your first one.</p>
           ) : (
             <div className="space-y-2">
-              {filtered.map((n) => (
-                <NoteCard
-                  key={n.id}
-                  id={n.id}
-                  title={n.title}
-                  type={n.type}
-                  courseName={n.courses?.name ?? null}
-                  courseColor={n.courses?.color ?? null}
-                  visibility={n.visibility}
-                  updatedAt={n.updated_at}
-                  ownerLabel={user && n.owner_id !== user.id ? profiles[n.owner_id] : undefined}
+              {courses.map((c) => (
+                <CourseCard
+                  key={c.id}
+                  id={c.id}
+                  name={c.name}
+                  professor={c.professor}
+                  color={c.color}
+                  readingCount={readingCounts[c.id] ?? 0}
+                  isShared={c.is_shared}
                 />
               ))}
             </div>
-          )}
-        </>
-      )}
-
-      {subView === 'courses' &&
-        (courses.length === 0 ? (
-          <p className="text-sm text-ink-muted">No courses yet — add your first one.</p>
-        ) : (
-          <div className="space-y-2">
-            {courses.map((c) => (
-              <CourseCard
-                key={c.id}
-                id={c.id}
-                name={c.name}
-                professor={c.professor}
-                color={c.color}
-                readingCount={readingCounts[c.id] ?? 0}
-                isShared={c.is_shared}
-              />
-            ))}
-          </div>
-        ))}
+          ))}
+      </div>
 
       {addNoteOpen && householdId && user && (
-        <AddNoteModal householdId={householdId} userId={user.id} courses={courses} onClose={() => setAddNoteOpen(false)} />
+        <AddNoteModal householdId={householdId} userId={user.id} space="law" courses={courses} onClose={() => setAddNoteOpen(false)} />
       )}
       {addCourseOpen && householdId && user && (
         <AddCourseModal householdId={householdId} userId={user.id} onAdded={load} onClose={() => setAddCourseOpen(false)} />

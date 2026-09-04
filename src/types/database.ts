@@ -460,6 +460,7 @@ export type Database = {
           id: string
           last_edited_by: string | null
           owner_id: string
+          space: string
           tags: string[]
           title: string
           type: string
@@ -479,6 +480,7 @@ export type Database = {
           id?: string
           last_edited_by?: string | null
           owner_id: string
+          space?: string
           tags?: string[]
           title: string
           type?: string
@@ -498,6 +500,7 @@ export type Database = {
           id?: string
           last_edited_by?: string | null
           owner_id?: string
+          space?: string
           tags?: string[]
           title?: string
           type?: string

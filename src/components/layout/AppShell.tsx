@@ -14,7 +14,7 @@ import { PomodoroTimer } from '../study/PomodoroTimer'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Timeline', Icon: TimelineIcon },
-  { to: '/notes', label: 'Notes', Icon: NotesIcon },
+  { to: '/notes', label: 'Law', Icon: NotesIcon },
   { to: '/budget', label: 'Budget', Icon: BudgetIcon },
   { to: '/us', label: 'Us', Icon: UsIcon },
 ]

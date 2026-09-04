@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
@@ -20,6 +20,7 @@ import { RecurringIncomeModal, type RecurringIncome } from '../components/us/Rec
 const REALTIME_TABLES = ['budget_transactions', 'budget_settings', 'accounts', 'recurring_income']
 const SUBVIEWS = ['overview', 'accounts'] as const
 type SubView = (typeof SUBVIEWS)[number]
+const SWIPE_MIN_DISTANCE = 60
 
 export function Budget() {
   const { user } = useAuth()
@@ -71,6 +72,29 @@ export function Budget() {
   }, [load])
 
   useRealtimeRefresh(REALTIME_TABLES, load)
+
+  // Same gesture as Us's Goals/Thoughts swipe (touchstart/touchend only,
+  // horizontal-dominance + minimum-distance check, no preventDefault) —
+  // with only two sub-views, either direction just toggles between them.
+  const subViewSwipeStart = useRef<{ x: number; y: number } | null>(null)
+
+  function handleSubViewSwipeStart(e: ReactTouchEvent) {
+    const t = e.touches[0]
+    subViewSwipeStart.current = { x: t.clientX, y: t.clientY }
+  }
+
+  function handleSubViewSwipeEnd(e: ReactTouchEvent) {
+    const start = subViewSwipeStart.current
+    subViewSwipeStart.current = null
+    if (!start) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    const idx = SUBVIEWS.indexOf(subView)
+    const nextIdx = dx < 0 ? (idx + 1) % SUBVIEWS.length : (idx - 1 + SUBVIEWS.length) % SUBVIEWS.length
+    setSubView(SUBVIEWS[nextIdx])
+  }
 
   // + adds a transaction on Overview, or a new account on Accounts —
   // transferring/paying down a debt has its own visible button there
@@ -128,44 +152,46 @@ export function Budget() {
         ))}
       </div>
 
-      {subView === 'overview' && user && householdId && (
-        <BudgetView
-          userId={user.id}
-          partnerId={partnerId}
-          myLabel={myLabel}
-          partnerLabel={partnerLabel}
-          hideBalances={hideBalances}
-          transactions={transactions}
-          accounts={activeAccounts}
-          categoryLimits={categoryLimits}
-          recurringIncome={recurringIncome.filter((r) => !r.archived)}
-          onEdit={(t) => {
-            setEntryPrefill(undefined)
-            setEntry(t)
-          }}
-          onEditLimits={() => setLimitsOpen(true)}
-          onLogRecurring={(template) => {
-            setEntryPrefill({ category: template.category, amount: template.amount, account_id: template.account_id, paid_by: template.paid_by })
-            setEntry('new')
-          }}
-          onEditRecurring={(template) => setRecurringModal(template)}
-          onAddRecurring={() => setRecurringModal('new')}
-        />
-      )}
+      <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd} className="space-y-4">
+        {subView === 'overview' && user && householdId && (
+          <BudgetView
+            userId={user.id}
+            partnerId={partnerId}
+            myLabel={myLabel}
+            partnerLabel={partnerLabel}
+            hideBalances={hideBalances}
+            transactions={transactions}
+            accounts={activeAccounts}
+            categoryLimits={categoryLimits}
+            recurringIncome={recurringIncome.filter((r) => !r.archived)}
+            onEdit={(t) => {
+              setEntryPrefill(undefined)
+              setEntry(t)
+            }}
+            onEditLimits={() => setLimitsOpen(true)}
+            onLogRecurring={(template) => {
+              setEntryPrefill({ category: template.category, amount: template.amount, account_id: template.account_id, paid_by: template.paid_by })
+              setEntry('new')
+            }}
+            onEditRecurring={(template) => setRecurringModal(template)}
+            onAddRecurring={() => setRecurringModal('new')}
+          />
+        )}
 
-      {subView === 'accounts' && user && (
-        <AccountsView
-          accounts={accounts}
-          transactions={transactions}
-          userId={user.id}
-          partnerId={partnerId}
-          myLabel={myLabel}
-          partnerLabel={partnerLabel}
-          hideBalances={hideBalances}
-          onEdit={(a) => setAccountModal(a)}
-          onTransfer={() => setTransferOpen(true)}
-        />
-      )}
+        {subView === 'accounts' && user && (
+          <AccountsView
+            accounts={accounts}
+            transactions={transactions}
+            userId={user.id}
+            partnerId={partnerId}
+            myLabel={myLabel}
+            partnerLabel={partnerLabel}
+            hideBalances={hideBalances}
+            onEdit={(a) => setAccountModal(a)}
+            onTransfer={() => setTransferOpen(true)}
+          />
+        )}
+      </div>
 
       {entry && householdId && user && (
         <BudgetEntryModal

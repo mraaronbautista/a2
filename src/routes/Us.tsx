@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { endOfDay } from 'date-fns'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
@@ -9,14 +10,25 @@ import { ThoughtComposer } from '../components/us/ThoughtComposer'
 import { ThoughtCard } from '../components/us/ThoughtCard'
 import { GoalModal, type Goal } from '../components/us/GoalModal'
 import { TaskItem } from '../components/tasks/TaskItem'
+import { NoteCard } from '../components/notes/NoteCard'
+import { AddNoteModal } from '../components/notes/AddNoteModal'
 import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon, ChevronDownIcon } from '../components/layout/icons'
 
-const REALTIME_TABLES = ['thoughts', 'goals']
-const SUBVIEW_ORDER = ['goals', 'thoughts'] as const
+const REALTIME_TABLES = ['thoughts', 'goals', 'notes']
+const SUBVIEW_ORDER = ['goals', 'thoughts', 'notes'] as const
 type SubView = (typeof SUBVIEW_ORDER)[number]
 const SWIPE_MIN_DISTANCE = 60
+
+interface PersonalNote {
+  id: string
+  title: string
+  type: 'case_brief' | 'freeform'
+  visibility: 'private' | 'shared'
+  owner_id: string
+  updated_at: string
+}
 
 interface ThoughtComment {
   id: string
@@ -45,14 +57,18 @@ export function Us() {
   const { householdId, loading: householdLoading } = useHousehold()
   const profiles = useProfiles()
   const { openSettings } = useSettings()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  const [subView, setSubView] = useState<SubView>('goals')
+  const initialView = searchParams.get('view') === 'notes' ? 'notes' : 'goals'
+  const [subView, setSubView] = useState<SubView>(initialView)
   const [thoughts, setThoughts] = useState<Thought[]>([])
   const [addedToToday, setAddedToToday] = useState<Set<string>>(new Set())
   const [archivedOpen, setArchivedOpen] = useState(false)
   const [goals, setGoals] = useState<Goal[]>([])
   const [goalModal, setGoalModal] = useState<Goal | 'new' | null>(null)
   const [completedGoalsOpen, setCompletedGoalsOpen] = useState(false)
+  const [notes, setNotes] = useState<PersonalNote[]>([])
+  const [addNoteOpen, setAddNoteOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const thoughtComposerRef = useRef<HTMLTextAreaElement>(null)
 
@@ -60,15 +76,26 @@ export function Us() {
     if (!householdId || !user) return
     setLoading(true)
 
-    const [thoughtsRes, goalsRes] = await Promise.all([
+    const [thoughtsRes, goalsRes, notesRes] = await Promise.all([
       supabase.from('thoughts').select('id, owner_id, body, visibility, comments, archived, created_at').order('created_at', { ascending: false }),
       supabase.from('goals').select('id, owner_id, title, target_date, visibility, completed_at').order('created_at', { ascending: false }),
+      supabase
+        .from('notes')
+        .select('id, title, type, visibility, owner_id, updated_at')
+        .eq('space', 'personal')
+        .order('updated_at', { ascending: false }),
     ])
 
     setThoughts((thoughtsRes.data ?? []) as unknown as Thought[])
     setGoals((goalsRes.data ?? []) as Goal[])
+    setNotes((notesRes.data ?? []) as PersonalNote[])
     setLoading(false)
   }, [householdId, user])
+
+  function selectSubView(view: SubView) {
+    setSubView(view)
+    setSearchParams(view === 'notes' ? { view } : {}, { replace: true })
+  }
 
   useEffect(() => {
     load()
@@ -157,19 +184,21 @@ export function Us() {
     if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return
     const idx = SUBVIEW_ORDER.indexOf(subView)
     const nextIdx = dx < 0 ? (idx + 1) % SUBVIEW_ORDER.length : (idx - 1 + SUBVIEW_ORDER.length) % SUBVIEW_ORDER.length
-    setSubView(SUBVIEW_ORDER[nextIdx])
+    selectSubView(SUBVIEW_ORDER[nextIdx])
   }
 
-  // The persistent "+" in AppShell opens a new goal on Goals; Thoughts has
-  // no separate "add" modal (the composer's always visible), so it just
-  // focuses that instead.
+  // The persistent "+" in AppShell opens a new goal on Goals or a new note
+  // on Notes; Thoughts has no separate "add" modal (the composer's always
+  // visible), so it just focuses that instead.
   useQuickAdd(
     subView === 'goals'
       ? () => setGoalModal('new')
-      : () => {
-          thoughtComposerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          thoughtComposerRef.current?.focus()
-        },
+      : subView === 'notes'
+        ? () => setAddNoteOpen(true)
+        : () => {
+            thoughtComposerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            thoughtComposerRef.current?.focus()
+          },
   )
 
   if (householdLoading || loading) {
@@ -205,11 +234,12 @@ export function Us() {
           [
             ['goals', 'Goals'],
             ['thoughts', 'Thoughts'],
+            ['notes', 'Notes'],
           ] as const
         ).map(([value, label]) => (
           <button
             key={value}
-            onClick={() => setSubView(value)}
+            onClick={() => selectSubView(value)}
             className={['rounded-full px-3 py-1 font-medium', subView === value ? 'bg-accent-bg text-accent' : 'text-ink-muted'].join(' ')}
           >
             {label}
@@ -338,7 +368,33 @@ export function Us() {
             )}
           </div>
         )}
+
+        {subView === 'notes' && user && (
+          <div className="space-y-2">
+            {notes.length === 0 ? (
+              <p className="text-sm text-ink-muted">No personal notes yet — trip plans, shared lists, anything that isn't law school.</p>
+            ) : (
+              notes.map((n) => (
+                <NoteCard
+                  key={n.id}
+                  id={n.id}
+                  title={n.title}
+                  type={n.type}
+                  courseName={null}
+                  courseColor={null}
+                  visibility={n.visibility}
+                  updatedAt={n.updated_at}
+                  ownerLabel={n.owner_id !== user.id ? profiles[n.owner_id] : undefined}
+                />
+              ))
+            )}
+          </div>
+        )}
       </div>
+
+      {addNoteOpen && householdId && user && (
+        <AddNoteModal householdId={householdId} userId={user.id} space="personal" courses={[]} onClose={() => setAddNoteOpen(false)} />
+      )}
 
       {goalModal && householdId && user && (
         <GoalModal

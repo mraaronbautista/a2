@@ -10,11 +10,12 @@ interface Course {
 interface AddNoteModalProps {
   householdId: string
   userId: string
+  space: 'law' | 'personal'
   courses: Course[]
   onClose: () => void
 }
 
-export function AddNoteModal({ householdId, userId, courses, onClose }: AddNoteModalProps) {
+export function AddNoteModal({ householdId, userId, space, courses, onClose }: AddNoteModalProps) {
   const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [type, setType] = useState<'freeform' | 'case_brief'>('freeform')
@@ -30,10 +31,11 @@ export function AddNoteModal({ householdId, userId, courses, onClose }: AddNoteM
       .insert({
         household_id: householdId,
         owner_id: userId,
-        course_id: courseId || null,
-        type,
+        course_id: space === 'law' ? courseId || null : null,
+        type: space === 'law' ? type : 'freeform',
         title,
         visibility: 'shared',
+        space,
       })
       .select('id')
       .single()
@@ -60,25 +62,27 @@ export function AddNoteModal({ householdId, userId, courses, onClose }: AddNoteM
           className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         />
 
-        <div className="flex gap-2 text-xs">
-          {(
-            [
-              ['freeform', 'Freeform'],
-              ['case_brief', 'Case brief'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setType(value)}
-              className={['rounded-full px-3 py-1 font-medium', type === value ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {space === 'law' && (
+          <div className="flex gap-2 text-xs">
+            {(
+              [
+                ['freeform', 'Freeform'],
+                ['case_brief', 'Case brief'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setType(value)}
+                className={['rounded-full px-3 py-1 font-medium', type === value ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {courses.length > 0 && (
+        {space === 'law' && courses.length > 0 && (
           <select
             value={courseId}
             onChange={(e) => setCourseId(e.target.value)}
