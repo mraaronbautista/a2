@@ -1,4 +1,5 @@
 import { accountBalance, netWorth } from '../../lib/accountBalances'
+import { formatPesos } from '../../lib/money'
 import type { Account } from './AccountModal'
 import type { BudgetTransaction } from './BudgetEntryModal'
 
@@ -9,6 +10,7 @@ interface AccountsViewProps {
   partnerId: string | null
   myLabel: string
   partnerLabel: string
+  hideBalances: boolean
   onEdit: (account: Account) => void
   onTransfer: () => void
 }
@@ -19,11 +21,18 @@ const SECTION_LABEL: Record<Account['kind'], string> = {
   debt: 'Debts',
 }
 
-function pesos(n: number) {
-  return `₱${Math.abs(n).toFixed(2)}`
-}
-
-export function AccountsView({ accounts, transactions, userId, partnerId, myLabel, partnerLabel, onEdit, onTransfer }: AccountsViewProps) {
+export function AccountsView({
+  accounts,
+  transactions,
+  userId,
+  partnerId,
+  myLabel,
+  partnerLabel,
+  hideBalances,
+  onEdit,
+  onTransfer,
+}: AccountsViewProps) {
+  const pesos = (n: number) => formatPesos(Math.abs(n), hideBalances)
   const active = accounts.filter((a) => !a.archived)
   const worth = netWorth(active, transactions)
 

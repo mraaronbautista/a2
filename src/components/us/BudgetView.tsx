@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { format, parseISO } from 'date-fns'
 import { iconForCategory } from '../../lib/budgetCategories'
+import { formatPesos } from '../../lib/money'
 import type { Account } from './AccountModal'
 import type { BudgetTransaction } from './BudgetEntryModal'
 import { scheduleLabel } from '../../lib/recurringSchedule'
@@ -11,6 +12,7 @@ interface BudgetViewProps {
   partnerId: string | null
   myLabel: string
   partnerLabel: string
+  hideBalances: boolean
   transactions: BudgetTransaction[]
   accounts: Account[]
   categoryLimits: Record<string, number>
@@ -38,6 +40,7 @@ export function BudgetView({
   partnerId,
   myLabel,
   partnerLabel,
+  hideBalances,
   transactions,
   accounts,
   categoryLimits,
@@ -48,6 +51,7 @@ export function BudgetView({
   onEditRecurring,
   onAddRecurring,
 }: BudgetViewProps) {
+  const pesos = (n: number) => formatPesos(n, hideBalances)
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts])
 
   const thisMonth = currentMonthKey()
@@ -205,10 +209,10 @@ export function BudgetView({
           <div className="flex items-baseline justify-between">
             <p className="text-xs text-ink-muted">Spent</p>
             <button onClick={onEditLimits} className="text-xs text-ink-muted hover:text-ink">
-              {monthlyLimit != null ? `/ ₱${monthlyLimit.toFixed(2)}` : 'Set limits'}
+              {monthlyLimit != null ? `/ ${pesos(monthlyLimit)}` : 'Set limits'}
             </button>
           </div>
-          <p className="mt-1 text-xl font-semibold text-navy">₱{spentThisMonth.toFixed(2)}</p>
+          <p className="mt-1 text-xl font-semibold text-navy">{pesos(spentThisMonth)}</p>
           {monthlyLimit != null && (
             <>
               <div className="mt-2 h-1.5 rounded-full bg-bg">
@@ -217,17 +221,17 @@ export function BudgetView({
                   style={{ width: `${Math.min(100, (spentThisMonth / monthlyLimit) * 100)}%` }}
                 />
               </div>
-              {overLimit && <p className="mt-1 text-xs text-ink-muted">Over by ₱{(spentThisMonth - monthlyLimit).toFixed(2)}</p>}
+              {overLimit && <p className="mt-1 text-xs text-ink-muted">Over by {pesos(spentThisMonth - monthlyLimit)}</p>}
             </>
           )}
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-ink-muted">Income</p>
-          <p className="mt-1 text-xl font-semibold text-accent">₱{incomeThisMonth.toFixed(2)}</p>
+          <p className="mt-1 text-xl font-semibold text-accent">{pesos(incomeThisMonth)}</p>
           {partnerId && incomeThisMonth > 0 && (
             <p className="mt-1 text-[11px] text-ink-muted">
-              {myLabel} ₱{incomeByPerson.mine.toFixed(2)} · {partnerLabel} ₱{incomeByPerson.partners.toFixed(2)}
+              {myLabel} {pesos(incomeByPerson.mine)} · {partnerLabel} {pesos(incomeByPerson.partners)}
             </p>
           )}
         </div>
@@ -237,7 +241,8 @@ export function BudgetView({
         <div className="flex items-center justify-between">
           <p className="text-xs text-ink-muted">Net this month</p>
           <p className={['text-sm font-semibold', netThisMonth < 0 ? 'text-ink' : 'text-accent'].join(' ')}>
-            {netThisMonth >= 0 ? '+' : '-'}₱{Math.abs(netThisMonth).toFixed(2)}
+            {netThisMonth >= 0 ? '+' : '-'}
+            {pesos(Math.abs(netThisMonth))}
           </p>
         </div>
       </div>
@@ -248,11 +253,11 @@ export function BudgetView({
             <p className="text-ink-muted">Settled up</p>
           ) : balance > 0 ? (
             <p className="text-ink">
-              You owe {partnerLabel} <span className="font-semibold">₱{balance.toFixed(2)}</span>
+              You owe {partnerLabel} <span className="font-semibold">{pesos(balance)}</span>
             </p>
           ) : (
             <p className="text-ink">
-              {partnerLabel} owes you <span className="font-semibold">₱{Math.abs(balance).toFixed(2)}</span>
+              {partnerLabel} owes you <span className="font-semibold">{pesos(Math.abs(balance))}</span>
             </p>
           )}
         </div>
@@ -276,8 +281,8 @@ export function BudgetView({
                     {iconForCategory(name)} {name}
                   </span>
                   <span className="text-ink-muted">
-                    ₱{spent.toFixed(2)}
-                    {limit != null ? ` / ₱${limit.toFixed(2)}` : ''}
+                    {pesos(spent)}
+                    {limit != null ? ` / ${pesos(limit)}` : ''}
                   </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-bg">
@@ -295,7 +300,7 @@ export function BudgetView({
           {debtSavingsRows.map(({ name, amount }) => (
             <div key={name} className="flex items-center justify-between text-xs text-ink">
               <span>{name}</span>
-              <span className="text-ink-muted">₱{amount.toFixed(2)}</span>
+              <span className="text-ink-muted">{pesos(amount)}</span>
             </div>
           ))}
         </div>
@@ -316,7 +321,7 @@ export function BudgetView({
               <button onClick={() => onEditRecurring(r)} className="min-w-0 flex-1 truncate text-left text-ink hover:text-accent">
                 {iconForCategory(r.category)} {r.label} · {scheduleLabel(r)}
               </button>
-              <span className="shrink-0 text-ink-muted">₱{r.amount.toFixed(2)}</span>
+              <span className="shrink-0 text-ink-muted">{pesos(r.amount)}</span>
               <button
                 onClick={() => onLogRecurring(r)}
                 className="shrink-0 rounded-full bg-accent-bg px-2.5 py-1 font-medium text-accent"
@@ -336,7 +341,7 @@ export function BudgetView({
               <span>
                 {iconForCategory(name)} {name}
               </span>
-              <span className="text-ink-muted">₱{amount.toFixed(2)}</span>
+              <span className="text-ink-muted">{pesos(amount)}</span>
             </div>
           ))}
         </div>
@@ -393,7 +398,8 @@ export function BudgetView({
                       )}
                     </div>
                     <span className={['shrink-0 text-sm font-semibold', t.type === 'income' ? 'text-accent' : 'text-ink'].join(' ')}>
-                      {t.type === 'income' ? '+' : isTransfer ? '' : '-'}₱{t.amount.toFixed(2)}
+                      {t.type === 'income' ? '+' : isTransfer ? '' : '-'}
+                      {pesos(t.amount)}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-ink-muted">

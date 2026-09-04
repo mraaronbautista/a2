@@ -7,7 +7,8 @@ import { usePartnerId } from '../hooks/usePartnerId'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
-import { SettingsIcon } from '../components/layout/icons'
+import { useHideBalances } from '../hooks/useHideBalances'
+import { EyeIcon, EyeOffIcon, SettingsIcon } from '../components/layout/icons'
 import { BudgetView } from '../components/us/BudgetView'
 import { BudgetEntryModal, type BudgetTransaction } from '../components/us/BudgetEntryModal'
 import { BudgetCategoryLimitsModal } from '../components/us/BudgetCategoryLimitsModal'
@@ -26,6 +27,7 @@ export function Budget() {
   const profiles = useProfiles()
   const partnerId = usePartnerId()
   const { openSettings } = useSettings()
+  const { hideBalances, toggle: toggleHideBalances } = useHideBalances()
 
   const [subView, setSubView] = useState<SubView>('overview')
   const [transactions, setTransactions] = useState<BudgetTransaction[]>([])
@@ -94,9 +96,19 @@ export function Budget() {
     <div className="mx-auto max-w-2xl space-y-4 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Budget</h1>
-        <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
-          <SettingsIcon className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={toggleHideBalances}
+            aria-label={hideBalances ? 'Show balances' : 'Hide balances'}
+            title={hideBalances ? 'Show balances' : 'Hide balances'}
+            className="rounded-full p-1.5 text-ink-muted hover:text-ink"
+          >
+            {hideBalances ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+          </button>
+          <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
+            <SettingsIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
@@ -122,6 +134,7 @@ export function Budget() {
           partnerId={partnerId}
           myLabel={myLabel}
           partnerLabel={partnerLabel}
+          hideBalances={hideBalances}
           transactions={transactions}
           accounts={activeAccounts}
           categoryLimits={categoryLimits}
@@ -148,6 +161,7 @@ export function Budget() {
           partnerId={partnerId}
           myLabel={myLabel}
           partnerLabel={partnerLabel}
+          hideBalances={hideBalances}
           onEdit={(a) => setAccountModal(a)}
           onTransfer={() => setTransferOpen(true)}
         />

@@ -34,7 +34,9 @@ detail view shows who last touched it and when; Courses is reading lists with pe
 + class-prep/cold-call tracking, an "Add reading" form with a Bulk mode — one reading per line,
 paste a whole syllabus at once — a "+ Note" link on each reading that jumps straight into a new
 note already titled and tagged to that course, and an "is_shared" classmates toggle so both
-partners can manage the same reading list), **Budget** (real accounts — asset/debt/savings, balance
+partners can manage the same reading list), **Budget** (an eye icon in the header masks every
+balance/amount on screen as "₱••••" — a per-device preference, persisted, for handing your phone
+to someone else without exposing numbers; real accounts — asset/debt/savings, balance
 always derived from starting_balance + everything posted, never stored — with an Expense/Income/
 Transfer entry form; a transfer moves money between two of your own accounts in one step, so paying
 down a credit card or funding a savings goal is a "From ... To ..." pick rather than two manual
