@@ -122,12 +122,26 @@ function alertSessionComplete(title: string) {
 }
 
 interface PomodoroTimerProps {
+  activated: boolean
+  onActivate: () => void
   onHide: () => void
+  openSignal: number
 }
 
-export function PomodoroTimer({ onHide }: PomodoroTimerProps) {
+export function PomodoroTimer({ activated, onActivate, onHide, openSignal }: PomodoroTimerProps) {
   const [timer, setTimer] = useState<TimerState>(initialState)
   const [open, setOpen] = useState(false)
+
+  // A click from Settings ("Open study timer", before there's a pill to
+  // tap) — a counter rather than a boolean so a repeat click re-opens the
+  // panel even if it's already open in this same render.
+  const openedFromSignal = useRef(0)
+  useEffect(() => {
+    if (openSignal > openedFromSignal.current) {
+      openedFromSignal.current = openSignal
+      setOpen(true)
+    }
+  }, [openSignal])
   const [durationDraft, setDurationDraft] = useState(() => String(Math.round(timer.durations.focus / 60)))
   const completionHandledRef = useRef(false)
   // The completion alert fires from inside a setInterval closure that only
@@ -210,6 +224,7 @@ export function PomodoroTimer({ onHide }: PomodoroTimerProps) {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission()
     }
+    if (!timer.running) onActivate()
     setTimer((current) => {
       if (current.running && current.endsAt) {
         return {
@@ -370,16 +385,18 @@ export function PomodoroTimer({ onHide }: PomodoroTimerProps) {
         </section>
       )}
 
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-label={open ? 'Close study timer' : 'Open study timer'}
-        className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-navy shadow-lg"
-      >
-        <span className={timer.running ? 'h-2.5 w-2.5 animate-pulse rounded-full bg-accent' : 'h-2.5 w-2.5 rounded-full bg-ink-muted'} />
-        <span className="tabular-nums">{formatTime(timer.remainingSeconds)}</span>
-        <span className="max-w-32 truncate text-xs font-normal text-ink-muted">{timer.label || LABELS[timer.mode]}</span>
-      </button>
+      {activated && (
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          aria-label={open ? 'Close study timer' : 'Open study timer'}
+          className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-navy shadow-lg"
+        >
+          <span className={timer.running ? 'h-2.5 w-2.5 animate-pulse rounded-full bg-accent' : 'h-2.5 w-2.5 rounded-full bg-ink-muted'} />
+          <span className="tabular-nums">{formatTime(timer.remainingSeconds)}</span>
+          <span className="max-w-32 truncate text-xs font-normal text-ink-muted">{timer.label || LABELS[timer.mode]}</span>
+        </button>
+      )}
     </div>
   )
 }

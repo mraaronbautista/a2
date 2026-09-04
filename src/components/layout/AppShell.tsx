@@ -8,6 +8,7 @@ import { useTheme } from '../../hooks/useTheme'
 import { SettingsContext } from '../../hooks/useSettings'
 import { QuickAddContext, type QuickAddHandler } from '../../hooks/useQuickAdd'
 import { usePomodoroVisibility } from '../../hooks/usePomodoroVisibility'
+import { usePomodoroActivated } from '../../hooks/usePomodoroActivated'
 import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
 import { NotesIcon, TimelineIcon, BudgetIcon, UsIcon } from './icons'
@@ -41,6 +42,11 @@ export function AppShell() {
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
   const { hidden: pomodoroHidden, setPomodoroHidden } = usePomodoroVisibility()
+  const { activated: pomodoroActivated, markActivated: markPomodoroActivated } = usePomodoroActivated()
+  // Bumped by Settings' "Open study timer" so PomodoroTimer can open its
+  // panel even before it's been activated — before that, there's no pill
+  // rendered yet to tap to open it any other way.
+  const [pomodoroOpenSignal, setPomodoroOpenSignal] = useState(0)
   // The page currently mounted under <Outlet> can override what the
   // persistent "+" does (see useQuickAdd) — falls back to the Timeline
   // task/event modal when nothing's registered one. A ref, not state:
@@ -156,12 +162,24 @@ export function AppShell() {
             <SettingsMenu
               theme={theme}
               toggleTheme={toggleTheme}
+              pomodoroActivated={pomodoroActivated}
               pomodoroHidden={pomodoroHidden}
               setPomodoroHidden={setPomodoroHidden}
+              onOpenPomodoro={() => {
+                setPomodoroOpenSignal((s) => s + 1)
+                setSettingsOpen(false)
+              }}
               onClose={() => setSettingsOpen(false)}
             />
           )}
-          {!pomodoroHidden && <PomodoroTimer onHide={() => setPomodoroHidden(true)} />}
+          {!pomodoroHidden && (
+            <PomodoroTimer
+              activated={pomodoroActivated}
+              onActivate={markPomodoroActivated}
+              onHide={() => setPomodoroHidden(true)}
+              openSignal={pomodoroOpenSignal}
+            />
+          )}
         </div>
       </QuickAddContext.Provider>
     </SettingsContext.Provider>
