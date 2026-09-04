@@ -8,14 +8,19 @@ interface TimerState {
   running: boolean
   endsAt: number | null
   completedFocusSessions: number
+  label: string
+  durations: Record<TimerMode, number>
 }
 
-const STORAGE_KEY = 'a2:pomodoro:v1'
-const DURATIONS: Record<TimerMode, number> = {
+const STORAGE_KEY = 'a2:pomodoro:v2'
+const DEFAULT_DURATIONS: Record<TimerMode, number> = {
   focus: 25 * 60,
   shortBreak: 5 * 60,
   longBreak: 15 * 60,
 }
+const DURATION_PRESETS_MIN = [5, 10, 15, 20, 25, 30, 45, 60]
+const MIN_DURATION_MIN = 1
+const MAX_DURATION_MIN = 180
 
 const LABELS: Record<TimerMode, string> = {
   focus: 'Focus',
@@ -23,18 +28,31 @@ const LABELS: Record<TimerMode, string> = {
   longBreak: 'Long break',
 }
 
+function readDurations(saved: Partial<TimerState>): Record<TimerMode, number> {
+  return {
+    focus: saved.durations?.focus ?? DEFAULT_DURATIONS.focus,
+    shortBreak: saved.durations?.shortBreak ?? DEFAULT_DURATIONS.shortBreak,
+    longBreak: saved.durations?.longBreak ?? DEFAULT_DURATIONS.longBreak,
+  }
+}
+
 function initialState(): TimerState {
   const fallback: TimerState = {
     mode: 'focus',
-    remainingSeconds: DURATIONS.focus,
+    remainingSeconds: DEFAULT_DURATIONS.focus,
     running: false,
     endsAt: null,
     completedFocusSessions: 0,
+    label: '',
+    durations: DEFAULT_DURATIONS,
   }
 
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '') as Partial<TimerState>
-    const mode = saved.mode && saved.mode in DURATIONS ? saved.mode : fallback.mode
+    const mode = saved.mode && saved.mode in DEFAULT_DURATIONS ? saved.mode : fallback.mode
+    const durations = readDurations(saved)
+    const label = saved.label ?? ''
+
     if (saved.running && saved.endsAt) {
       const remaining = Math.max(0, Math.ceil((saved.endsAt - Date.now()) / 1000))
       return {
@@ -43,13 +61,17 @@ function initialState(): TimerState {
         running: remaining > 0,
         endsAt: remaining > 0 ? saved.endsAt : null,
         completedFocusSessions: saved.completedFocusSessions ?? 0,
+        label,
+        durations,
       }
     }
     return {
       ...fallback,
       mode,
-      remainingSeconds: saved.remainingSeconds ?? DURATIONS[mode],
+      remainingSeconds: saved.remainingSeconds ?? durations[mode],
       completedFocusSessions: saved.completedFocusSessions ?? 0,
+      label,
+      durations,
     }
   } catch {
     return fallback
@@ -83,11 +105,19 @@ function playCompletionTone() {
 export function PomodoroTimer() {
   const [timer, setTimer] = useState<TimerState>(initialState)
   const [open, setOpen] = useState(false)
+  const [durationDraft, setDurationDraft] = useState(() => String(Math.round(timer.durations.focus / 60)))
   const completionHandledRef = useRef(false)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(timer))
   }, [timer])
+
+  // Keeps the typed-minutes field in sync whenever the active mode changes,
+  // or a preset/stepper click changes that mode's duration elsewhere — so
+  // it never shows a stale number left over from the last thing edited.
+  useEffect(() => {
+    setDurationDraft(String(Math.round(timer.durations[timer.mode] / 60)))
+  }, [timer.mode, timer.durations])
 
   useEffect(() => {
     if (!timer.running || !timer.endsAt) return
@@ -123,18 +153,18 @@ export function PomodoroTimer() {
       document.title = 'A²'
       return
     }
-    document.title = `${formatTime(timer.remainingSeconds)} · ${LABELS[timer.mode]} · A²`
+    document.title = `${formatTime(timer.remainingSeconds)} · ${timer.label || LABELS[timer.mode]} · A²`
     return () => {
       document.title = 'A²'
     }
-  }, [timer.running, timer.remainingSeconds, timer.mode])
+  }, [timer.running, timer.remainingSeconds, timer.mode, timer.label])
 
   function chooseMode(mode: TimerMode) {
     completionHandledRef.current = false
     setTimer((current) => ({
       ...current,
       mode,
-      remainingSeconds: DURATIONS[mode],
+      remainingSeconds: current.durations[mode],
       running: false,
       endsAt: null,
     }))
@@ -151,7 +181,7 @@ export function PomodoroTimer() {
           remainingSeconds: Math.max(0, Math.ceil((current.endsAt - Date.now()) / 1000)),
         }
       }
-      const seconds = current.remainingSeconds || DURATIONS[current.mode]
+      const seconds = current.remainingSeconds || current.durations[current.mode]
       return { ...current, remainingSeconds: seconds, running: true, endsAt: Date.now() + seconds * 1000 }
     })
   }
@@ -160,20 +190,49 @@ export function PomodoroTimer() {
     completionHandledRef.current = false
     setTimer((current) => ({
       ...current,
-      remainingSeconds: DURATIONS[current.mode],
+      remainingSeconds: current.durations[current.mode],
       running: false,
       endsAt: null,
     }))
   }
 
+  function setDurationMinutes(minutes: number) {
+    const clamped = Math.min(MAX_DURATION_MIN, Math.max(MIN_DURATION_MIN, Math.round(minutes)))
+    completionHandledRef.current = false
+    setTimer((current) => ({
+      ...current,
+      durations: { ...current.durations, [current.mode]: clamped * 60 },
+      remainingSeconds: clamped * 60,
+      running: false,
+      endsAt: null,
+    }))
+  }
+
+  function commitDurationDraft() {
+    const parsed = Number(durationDraft)
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setDurationDraft(String(Math.round(timer.durations[timer.mode] / 60)))
+      return
+    }
+    setDurationMinutes(parsed)
+  }
+
+  const currentMinutes = Math.round(timer.durations[timer.mode] / 60)
+
   return (
-    <div className="fixed right-4 bottom-28 z-40 flex flex-col items-end gap-2 md:right-6 md:bottom-6">
+    <div className="fixed inset-x-0 bottom-28 z-40 flex flex-col items-center gap-2 md:inset-x-auto md:right-6 md:bottom-6 md:items-end">
       {open && (
         <section className="w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-border bg-surface p-4 shadow-xl">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">Study session</p>
-              <h2 className="mt-1 text-lg font-semibold text-navy">{LABELS[timer.mode]}</h2>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">{LABELS[timer.mode]}</p>
+              <input
+                type="text"
+                value={timer.label}
+                onChange={(e) => setTimer((current) => ({ ...current, label: e.target.value }))}
+                placeholder="What are you focusing on?"
+                className="mt-1 w-full rounded-lg border border-transparent bg-transparent px-0 text-lg font-semibold text-navy outline-none focus:border-border focus:bg-bg focus:px-2 focus:py-1"
+              />
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close timer" className="px-2 text-xl text-ink-muted">×</button>
           </div>
@@ -183,22 +242,74 @@ export function PomodoroTimer() {
           </p>
 
           <div className="grid grid-cols-3 gap-1 rounded-xl bg-bg p-1">
-            {(Object.keys(DURATIONS) as TimerMode[]).map((mode) => (
+            {(Object.keys(DEFAULT_DURATIONS) as TimerMode[]).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 onClick={() => chooseMode(mode)}
                 className={[
-                  'rounded-lg px-2 py-2 text-xs font-medium',
+                  'rounded-lg px-2 py-2 text-xs font-medium tabular-nums',
                   timer.mode === mode ? 'bg-surface text-accent shadow-sm' : 'text-ink-muted',
                 ].join(' ')}
               >
-                {mode === 'focus' ? '25 min' : mode === 'shortBreak' ? '5 min' : '15 min'}
+                {Math.round(timer.durations[mode] / 60)} min
               </button>
             ))}
           </div>
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-3 space-y-2 rounded-xl border border-dashed border-border p-2.5">
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {DURATION_PRESETS_MIN.map((minutes) => (
+                <button
+                  key={minutes}
+                  type="button"
+                  onClick={() => setDurationMinutes(minutes)}
+                  className={[
+                    'rounded-full px-2.5 py-1 text-xs font-medium',
+                    currentMinutes === minutes ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
+                  ].join(' ')}
+                >
+                  {minutes}m
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-center gap-3 rounded-full bg-bg p-1">
+              <button
+                type="button"
+                onClick={() => setDurationMinutes(currentMinutes - 5)}
+                aria-label="Decrease minutes"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-lg leading-none font-semibold text-navy shadow-sm"
+              >
+                −
+              </button>
+              <span className="flex items-baseline gap-1">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={MIN_DURATION_MIN}
+                  max={MAX_DURATION_MIN}
+                  value={durationDraft}
+                  onChange={(e) => setDurationDraft(e.target.value)}
+                  onBlur={commitDurationDraft}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur()
+                  }}
+                  className="w-12 bg-transparent text-center text-sm font-semibold text-navy outline-none"
+                />
+                <span className="text-xs text-ink-muted">min</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setDurationMinutes(currentMinutes + 5)}
+                aria-label="Increase minutes"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-lg leading-none font-semibold text-navy shadow-sm"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3 flex gap-2">
             <button type="button" onClick={toggleRunning} className="flex-1 rounded-lg bg-accent px-4 py-2.5 font-medium text-white">
               {timer.running ? 'Pause' : timer.remainingSeconds === 0 ? 'Start again' : 'Start'}
             </button>
@@ -219,7 +330,7 @@ export function PomodoroTimer() {
       >
         <span className={timer.running ? 'h-2.5 w-2.5 animate-pulse rounded-full bg-accent' : 'h-2.5 w-2.5 rounded-full bg-ink-muted'} />
         <span className="tabular-nums">{formatTime(timer.remainingSeconds)}</span>
-        <span className="text-xs font-normal text-ink-muted">{LABELS[timer.mode]}</span>
+        <span className="max-w-32 truncate text-xs font-normal text-ink-muted">{timer.label || LABELS[timer.mode]}</span>
       </button>
     </div>
   )
