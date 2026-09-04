@@ -8,12 +8,14 @@ import { HowToGuide } from './HowToGuide'
 interface SettingsMenuProps {
   theme: 'light' | 'dark'
   toggleTheme: () => void
+  pomodoroHidden: boolean
+  setPomodoroHidden: (hidden: boolean) => void
   onClose: () => void
 }
 
 const ITEM_CLASS = 'flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink hover:bg-bg'
 
-export function SettingsMenu({ theme, toggleTheme, onClose }: SettingsMenuProps) {
+export function SettingsMenu({ theme, toggleTheme, pomodoroHidden, setPomodoroHidden, onClose }: SettingsMenuProps) {
   const { user } = useAuth()
   const profiles = useProfiles()
   const [guideOpen, setGuideOpen] = useState(false)
@@ -83,6 +85,11 @@ export function SettingsMenu({ theme, toggleTheme, onClose }: SettingsMenuProps)
           <button type="button" onClick={toggleTheme} className={ITEM_CLASS}>
             Appearance
             <span className="text-xs text-ink-muted capitalize">{theme}</span>
+          </button>
+
+          <button type="button" onClick={() => setPomodoroHidden(!pomodoroHidden)} className={ITEM_CLASS}>
+            Study timer
+            <span className="text-xs text-ink-muted">{pomodoroHidden ? 'Hidden' : 'Shown'}</span>
           </button>
 
           <button type="button" onClick={() => setGuideOpen(true)} className={ITEM_CLASS}>

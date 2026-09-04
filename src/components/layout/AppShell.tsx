@@ -7,6 +7,7 @@ import { Logo } from '../Logo'
 import { useTheme } from '../../hooks/useTheme'
 import { SettingsContext } from '../../hooks/useSettings'
 import { QuickAddContext, type QuickAddHandler } from '../../hooks/useQuickAdd'
+import { usePomodoroVisibility } from '../../hooks/usePomodoroVisibility'
 import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
 import { NotesIcon, TimelineIcon, BudgetIcon, UsIcon } from './icons'
@@ -39,6 +40,7 @@ export function AppShell() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
+  const { hidden: pomodoroHidden, setPomodoroHidden } = usePomodoroVisibility()
   // The page currently mounted under <Outlet> can override what the
   // persistent "+" does (see useQuickAdd) — falls back to the Timeline
   // task/event modal when nothing's registered one. A ref, not state:
@@ -150,8 +152,16 @@ export function AppShell() {
             />
           )}
 
-          {settingsOpen && <SettingsMenu theme={theme} toggleTheme={toggleTheme} onClose={() => setSettingsOpen(false)} />}
-          <PomodoroTimer />
+          {settingsOpen && (
+            <SettingsMenu
+              theme={theme}
+              toggleTheme={toggleTheme}
+              pomodoroHidden={pomodoroHidden}
+              setPomodoroHidden={setPomodoroHidden}
+              onClose={() => setSettingsOpen(false)}
+            />
+          )}
+          {!pomodoroHidden && <PomodoroTimer onHide={() => setPomodoroHidden(true)} />}
         </div>
       </QuickAddContext.Provider>
     </SettingsContext.Provider>

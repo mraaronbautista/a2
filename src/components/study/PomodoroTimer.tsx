@@ -102,11 +102,41 @@ function playCompletionTone() {
   }
 }
 
-export function PomodoroTimer() {
+// A tone alone is easy to miss — silenced phone, tab in the background, or
+// the app just not on screen. Stack every alert channel that doesn't need
+// extra permission plumbing: vibration, and a real notification (which,
+// unlike `new Notification()`, still shows up when the tab isn't focused)
+// if permission was already granted.
+function alertSessionComplete(title: string) {
+  playCompletionTone()
+  if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
+  if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then((registration) => {
+      registration.showNotification(title, {
+        body: 'Session complete.',
+        icon: '/icons.svg',
+        badge: '/icons.svg',
+      })
+    })
+  }
+}
+
+interface PomodoroTimerProps {
+  onHide: () => void
+}
+
+export function PomodoroTimer({ onHide }: PomodoroTimerProps) {
   const [timer, setTimer] = useState<TimerState>(initialState)
   const [open, setOpen] = useState(false)
   const [durationDraft, setDurationDraft] = useState(() => String(Math.round(timer.durations.focus / 60)))
   const completionHandledRef = useRef(false)
+  // The completion alert fires from inside a setInterval closure that only
+  // re-installs when running/endsAt change — label/mode edits mid-session
+  // wouldn't otherwise be visible to it. A ref always has the latest value.
+  const timerRef = useRef(timer)
+  useEffect(() => {
+    timerRef.current = timer
+  }, [timer])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(timer))
@@ -131,7 +161,9 @@ export function PomodoroTimer() {
 
       if (!completionHandledRef.current) {
         completionHandledRef.current = true
-        playCompletionTone()
+        const { label, mode } = timerRef.current
+        alertSessionComplete(`${label || LABELS[mode]} done`)
+        setOpen(true)
       }
       setTimer((current) => ({
         ...current,
@@ -172,6 +204,12 @@ export function PomodoroTimer() {
 
   function toggleRunning() {
     completionHandledRef.current = false
+    // Starting a session is a real user gesture — the right, non-jarring
+    // moment to ask, rather than prompting on page load for a feature
+    // nobody's used yet. A no-op once granted or denied.
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
     setTimer((current) => {
       if (current.running && current.endsAt) {
         return {
@@ -220,7 +258,7 @@ export function PomodoroTimer() {
   const currentMinutes = Math.round(timer.durations[timer.mode] / 60)
 
   return (
-    <div className="fixed inset-x-0 bottom-28 z-40 flex flex-col items-center gap-2 md:inset-x-auto md:right-6 md:bottom-6 md:items-end">
+    <div className="fixed inset-x-0 bottom-36 z-40 flex flex-col items-center gap-2 md:inset-x-auto md:right-6 md:bottom-6 md:items-end">
       {open && (
         <section className="w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-border bg-surface p-4 shadow-xl">
           <div className="flex items-start justify-between gap-3">
@@ -236,6 +274,12 @@ export function PomodoroTimer() {
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close timer" className="px-2 text-xl text-ink-muted">×</button>
           </div>
+
+          {timer.remainingSeconds === 0 && !timer.running && (
+            <p className="mt-4 rounded-lg bg-accent-bg px-3 py-2 text-center text-sm font-semibold text-accent" aria-live="assertive">
+              ⏰ Time's up!
+            </p>
+          )}
 
           <p className="my-5 text-center text-5xl font-semibold tabular-nums text-navy" aria-live="polite">
             {formatTime(timer.remainingSeconds)}
@@ -319,6 +363,10 @@ export function PomodoroTimer() {
           <p className="mt-3 text-center text-xs text-ink-muted">
             {timer.completedFocusSessions} focus {timer.completedFocusSessions === 1 ? 'session' : 'sessions'} completed on this device
           </p>
+
+          <button type="button" onClick={onHide} className="mt-3 w-full text-center text-xs text-ink-muted underline-offset-2 hover:text-ink hover:underline">
+            Hide timer — bring it back anytime in Settings
+          </button>
         </section>
       )}
 
