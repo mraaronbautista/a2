@@ -5,14 +5,14 @@ import { precacheAndRoute } from 'workbox-precaching'
 declare const self: ServiceWorkerGlobalScope
 
 precacheAndRoute(self.__WB_MANIFEST)
-clientsClaim()
 
-// vite-plugin-pwa's registerType: 'autoUpdate' client posts this once a new
-// worker is waiting, so it activates without the user having to close every
-// tab first.
-self.addEventListener('message', (event) => {
-  if (event.data === 'SKIP_WAITING') self.skipWaiting()
-})
+// Activate a newly installed worker immediately instead of leaving it
+// "waiting" until every open tab/PWA instance is closed — a household of
+// two, each often leaving the app open for days, would otherwise sit on a
+// stale build indefinitely. Paired with the registerSW(...) call in
+// main.tsx, which reloads the page once this new worker takes control.
+self.skipWaiting()
+clientsClaim()
 
 interface PushPayload {
   title: string

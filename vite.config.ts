@@ -9,6 +9,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // The default auto-injected registration script only ever calls
+      // navigator.serviceWorker.register() — no update handling. main.tsx
+      // registers via the virtual:pwa-register module instead, which
+      // reloads the page once a new worker activates.
+      injectRegister: false,
       // Push needs custom service-worker logic (push/notificationclick
       // handlers) that generateSW's auto-authored worker has no hook for —
       // injectManifest lets src/sw.ts own the whole file, with the
