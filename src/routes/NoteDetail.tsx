@@ -12,6 +12,13 @@ import { CheckIcon, SpinnerIcon } from '../components/layout/icons'
 
 // How long to wait after the last keystroke before autosaving.
 const AUTOSAVE_DELAY_MS = 900
+// An autosave's own write echoes back through the realtime subscription
+// a moment later — long enough that `dirty` has usually already reset to
+// false by the time it arrives, which used to make the echo look just
+// like a genuine remote change and trigger a reload. Ignore any realtime
+// event this soon after our own save; a real edit from the partner is
+// vanishingly unlikely to land in this exact window.
+const SELF_ECHO_WINDOW_MS = 4000
 
 const REALTIME_TABLES = ['notes']
 
@@ -57,9 +64,15 @@ export function NoteDetail() {
   const [content, setContent] = useState<JSONContent | null>(null)
   const [caseBrief, setCaseBrief] = useState<CaseBrief>({ facts: '', issue: '', holding: '', reasoning: '', dissent: '' })
 
+  // Only the very first fetch of a given note should show the full-page
+  // "Loading…" state (which unmounts the editor) — a background refresh
+  // of a note already on screen (a genuine partner edit arriving live)
+  // should update in place instead of flashing the whole view away.
+  const loadedNoteIdRef = useRef<string | null>(null)
+
   const load = useCallback(async () => {
     if (!noteId) return
-    setLoading(true)
+    if (loadedNoteIdRef.current !== noteId) setLoading(true)
 
     const [noteRes, coursesRes] = await Promise.all([
       supabase
@@ -93,6 +106,7 @@ export function NoteDetail() {
 
     setDirty(false)
     setLoading(false)
+    loadedNoteIdRef.current = noteId
   }, [noteId])
 
   useEffect(() => {
@@ -105,8 +119,11 @@ export function NoteDetail() {
   useEffect(() => {
     dirtyRef.current = dirty
   }, [dirty])
+  const justSavedAtRef = useRef(0)
   const handleRealtimeChange = useCallback(() => {
-    if (!dirtyRef.current) load()
+    if (dirtyRef.current) return
+    if (Date.now() - justSavedAtRef.current < SELF_ECHO_WINDOW_MS) return
+    load()
   }, [load])
   useRealtimeRefresh(REALTIME_TABLES, handleRealtimeChange)
 
@@ -146,6 +163,7 @@ export function NoteDetail() {
       })
       .eq('id', note.id)
 
+    justSavedAtRef.current = Date.now()
     setNote((prev) => (prev ? { ...prev, last_edited_by: user.id, updated_at: updatedAt } : prev))
     setSaving(false)
     setDirty(false)
