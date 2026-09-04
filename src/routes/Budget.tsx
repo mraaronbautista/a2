@@ -47,10 +47,10 @@ export function Budget() {
     const [budgetRes, settingsRes, accountsRes, recurringRes] = await Promise.all([
       supabase
         .from('budget_transactions')
-        .select('id, type, amount, category, description, paid_by, split_mode, occurred_on, account_id, to_account_id')
+        .select('id, type, amount, category, tags, description, paid_by, split_mode, occurred_on, account_id, to_account_id')
         .order('occurred_on', { ascending: false }),
       supabase.from('budget_settings').select('category_limits').eq('household_id', householdId).maybeSingle(),
-      supabase.from('accounts').select('id, name, kind, target_amount, starting_balance, archived').order('created_at', { ascending: true }),
+      supabase.from('accounts').select('id, name, kind, target_amount, starting_balance, archived, owner_id').order('created_at', { ascending: true }),
       supabase
         .from('recurring_income')
         .select('id, label, category, amount, account_id, day_of_month, paid_by, archived')
@@ -140,10 +140,14 @@ export function Budget() {
         />
       )}
 
-      {subView === 'accounts' && (
+      {subView === 'accounts' && user && (
         <AccountsView
           accounts={accounts}
           transactions={transactions}
+          userId={user.id}
+          partnerId={partnerId}
+          myLabel={myLabel}
+          partnerLabel={partnerLabel}
           onEdit={(a) => setAccountModal(a)}
           onTransfer={() => setTransferOpen(true)}
         />
@@ -180,6 +184,9 @@ export function Budget() {
         <AccountModal
           householdId={householdId}
           userId={user.id}
+          partnerId={partnerId}
+          myLabel={myLabel}
+          partnerLabel={partnerLabel}
           account={accountModal === 'new' ? null : accountModal}
           onClose={() => setAccountModal(null)}
           onSaved={() => {

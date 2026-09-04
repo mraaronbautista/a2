@@ -8,11 +8,15 @@ export interface Account {
   target_amount: number | null
   starting_balance: number
   archived: boolean
+  owner_id: string | null
 }
 
 interface AccountModalProps {
   householdId: string
   userId: string
+  partnerId: string | null
+  myLabel: string
+  partnerLabel: string
   account: Account | null
   onClose: () => void
   onSaved: () => void
@@ -25,11 +29,22 @@ const KIND_LABEL: Record<Account['kind'], string> = {
   savings: 'Savings goal',
 }
 
-export function AccountModal({ householdId, userId, account, onClose, onSaved, onDeleted }: AccountModalProps) {
+export function AccountModal({
+  householdId,
+  userId,
+  partnerId,
+  myLabel,
+  partnerLabel,
+  account,
+  onClose,
+  onSaved,
+  onDeleted,
+}: AccountModalProps) {
   const [name, setName] = useState(account?.name ?? '')
   const [kind, setKind] = useState<Account['kind']>(account?.kind ?? 'asset')
   const [startingBalance, setStartingBalance] = useState(account ? String(account.starting_balance) : '')
   const [targetAmount, setTargetAmount] = useState(account?.target_amount != null ? String(account.target_amount) : '')
+  const [ownerId, setOwnerId] = useState<string | null>(account ? account.owner_id : null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -46,6 +61,7 @@ export function AccountModal({ householdId, userId, account, onClose, onSaved, o
       kind,
       starting_balance: startingBalance.trim() ? Number(startingBalance) : 0,
       target_amount: kind === 'savings' && targetAmount.trim() ? Number(targetAmount) : null,
+      owner_id: ownerId,
     }
 
     if (account) {
@@ -66,6 +82,15 @@ export function AccountModal({ householdId, userId, account, onClose, onSaved, o
     setDeleting(false)
     onDeleted()
   }
+
+  // A label only — every account stays fully visible/editable by both
+  // partners regardless of this (see the migration's note on why there's
+  // no real visibility split here). "Joint" is owner_id: null.
+  const ownerOptions: { value: string | null; label: string }[] = [
+    { value: null, label: 'Joint' },
+    { value: userId, label: myLabel === 'you' ? 'You' : myLabel },
+    ...(partnerId ? [{ value: partnerId, label: partnerLabel === 'partner' ? 'Partner' : partnerLabel }] : []),
+  ]
 
   return (
     <div
@@ -101,6 +126,22 @@ export function AccountModal({ householdId, userId, account, onClose, onSaved, o
               ].join(' ')}
             >
               {KIND_LABEL[k]}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-1.5 text-xs">
+          {ownerOptions.map(({ value, label }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setOwnerId(value)}
+              className={[
+                'flex-1 rounded-lg border px-3 py-2 font-medium capitalize',
+                ownerId === value ? 'border-accent bg-accent-bg text-accent' : 'border-border bg-bg text-ink-muted',
+              ].join(' ')}
+            >
+              {label}
             </button>
           ))}
         </div>

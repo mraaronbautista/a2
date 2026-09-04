@@ -8,6 +8,7 @@ export interface BudgetTransaction {
   type: 'income' | 'expense' | 'transfer'
   amount: number
   category: string | null
+  tags: string[]
   description: string | null
   paid_by: string
   split_mode: 'shared' | 'personal'
@@ -69,6 +70,7 @@ export function BudgetEntryModal({
     const list = entry?.type === 'income' || prefill ? BUDGET_INCOME_CATEGORIES : BUDGET_CATEGORIES
     return !list.some((c) => c.label === value)
   })
+  const [tagsInput, setTagsInput] = useState((entry?.tags ?? []).join(', '))
   const [description, setDescription] = useState(entry?.description ?? '')
   const [accountId, setAccountId] = useState(entry?.account_id ?? prefill?.account_id ?? accounts[0]?.id ?? '')
   const [paidBy, setPaidBy] = useState(entry?.paid_by ?? prefill?.paid_by ?? userId)
@@ -94,12 +96,18 @@ export function BudgetEntryModal({
     if (!parsedAmount || parsedAmount <= 0 || !accountId) return
     setSaving(true)
 
+    const tags = tagsInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+
     const payload = {
       household_id: householdId,
       created_by: userId,
       type,
       amount: parsedAmount,
       category: category.trim() || 'Uncategorized',
+      tags,
       description: description.trim() || null,
       account_id: accountId,
       to_account_id: null,
@@ -236,6 +244,14 @@ export function BudgetEntryModal({
                 className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               />
             )}
+
+            <input
+              type="text"
+              placeholder="Tags, comma-separated (optional)"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+            />
 
             <input
               type="text"

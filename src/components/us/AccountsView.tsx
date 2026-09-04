@@ -5,6 +5,10 @@ import type { BudgetTransaction } from './BudgetEntryModal'
 interface AccountsViewProps {
   accounts: Account[]
   transactions: BudgetTransaction[]
+  userId: string
+  partnerId: string | null
+  myLabel: string
+  partnerLabel: string
   onEdit: (account: Account) => void
   onTransfer: () => void
 }
@@ -19,9 +23,16 @@ function pesos(n: number) {
   return `₱${Math.abs(n).toFixed(2)}`
 }
 
-export function AccountsView({ accounts, transactions, onEdit, onTransfer }: AccountsViewProps) {
+export function AccountsView({ accounts, transactions, userId, partnerId, myLabel, partnerLabel, onEdit, onTransfer }: AccountsViewProps) {
   const active = accounts.filter((a) => !a.archived)
   const worth = netWorth(active, transactions)
+
+  function ownerLabel(ownerId: string | null) {
+    if (!ownerId) return null
+    if (ownerId === userId) return myLabel === 'you' ? 'You' : myLabel
+    if (ownerId === partnerId) return partnerLabel === 'partner' ? 'Partner' : partnerLabel
+    return null
+  }
 
   return (
     <div className="space-y-3">
@@ -56,7 +67,10 @@ export function AccountsView({ accounts, transactions, onEdit, onTransfer }: Acc
                   <li key={a.id}>
                     <button onClick={() => onEdit(a)} className="w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-left hover:border-accent">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm text-ink">{a.name}</span>
+                        <span className="min-w-0 truncate text-sm text-ink">
+                          {a.name}
+                          {ownerLabel(a.owner_id) && <span className="ml-1.5 text-xs text-ink-muted">· {ownerLabel(a.owner_id)}</span>}
+                        </span>
                         <span className="shrink-0 text-sm font-semibold text-ink">
                           {kind === 'debt' && balance !== 0 ? '-' : ''}
                           {pesos(balance)}

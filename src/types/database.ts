@@ -48,6 +48,7 @@ export type Database = {
           id: string
           kind: string
           name: string
+          owner_id: string | null
           starting_balance: number
           target_amount: number | null
         }
@@ -59,6 +60,7 @@ export type Database = {
           id?: string
           kind: string
           name: string
+          owner_id?: string | null
           starting_balance?: number
           target_amount?: number | null
         }
@@ -70,6 +72,7 @@ export type Database = {
           id?: string
           kind?: string
           name?: string
+          owner_id?: string | null
           starting_balance?: number
           target_amount?: number | null
         }
@@ -122,6 +125,7 @@ export type Database = {
           occurred_on: string
           paid_by: string
           split_mode: string
+          tags: string[]
           to_account_id: string | null
           type: string
           updated_at: string
@@ -138,6 +142,7 @@ export type Database = {
           occurred_on?: string
           paid_by: string
           split_mode?: string
+          tags?: string[]
           to_account_id?: string | null
           type: string
           updated_at?: string
@@ -154,6 +159,7 @@ export type Database = {
           occurred_on?: string
           paid_by?: string
           split_mode?: string
+          tags?: string[]
           to_account_id?: string | null
           type?: string
           updated_at?: string

@@ -381,6 +381,15 @@ export function BudgetView({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-ink">{title}</p>
                       {t.description && <p className="truncate text-xs text-ink-muted">{t.description}</p>}
+                      {t.tags.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {t.tags.map((tag) => (
+                            <span key={tag} className="rounded-full bg-accent-bg px-1.5 py-0.5 text-[10px] font-medium text-accent">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <span className={['shrink-0 text-sm font-semibold', t.type === 'income' ? 'text-accent' : 'text-ink'].join(' ')}>
                       {t.type === 'income' ? '+' : isTransfer ? '' : '-'}₱{t.amount.toFixed(2)}
