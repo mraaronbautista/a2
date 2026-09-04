@@ -37,6 +37,7 @@ export function EventChip({ item, ownerLabel, dense, showCheckbox, onOpen }: Eve
       <span className={['truncate font-medium', item.completed ? 'text-ink-muted line-through' : 'text-ink'].join(' ')}>
         {item.title}
       </span>
+      {item.courseName && <span className="shrink-0 truncate text-ink-muted">· {item.courseName}</span>}
       {/* Readings are date-only (no meaningful time-of-day); events and
           tasks can both carry a real time now. */}
       {item.kind !== 'reading' && <span className="shrink-0 text-ink-muted">{format(item.start, 'h:mma').toLowerCase()}</span>}

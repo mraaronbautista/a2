@@ -232,20 +232,22 @@ export function TaskDetailModal({ taskId, userId, householdId, courses, onClose,
                   className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent text-lg font-semibold text-navy outline-none focus:border-border focus:bg-bg focus:px-2 focus:py-1"
                 />
               ) : (
-                <h2 className="text-lg font-semibold text-navy">{title}</h2>
+                <h2 className="min-w-0 flex-1 truncate text-lg font-semibold text-navy">{title}</h2>
+              )}
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => setEditing((v) => !v)}
+                  aria-label="Edit"
+                  className={['shrink-0', editing ? 'text-accent' : 'text-ink-muted hover:text-ink'].join(' ')}
+                >
+                  <EditIcon className="h-[18px] w-[18px]" />
+                </button>
               )}
             </div>
 
             {canManage && (
               <div className="flex items-center gap-3 text-ink-muted">
-                <button
-                  type="button"
-                  onClick={() => setEditing((v) => !v)}
-                  aria-label="Edit"
-                  className={editing ? 'text-accent' : 'hover:text-ink'}
-                >
-                  <EditIcon className="h-[18px] w-[18px]" />
-                </button>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}

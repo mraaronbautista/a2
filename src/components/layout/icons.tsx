@@ -111,6 +111,24 @@ export function DuplicateIcon({ className }: IconProps) {
   )
 }
 
+export function CheckIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
+      <path d="M5 12.5l4.5 4.5L19 7" />
+    </svg>
+  )
+}
+
+// A three-quarter ring — paired with a `animate-spin` class wherever it's
+// used, rather than baking rotation into the svg itself.
+export function SpinnerIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className={className ?? BASE}>
+      <path d="M12 3a9 9 0 1 1-9 9" />
+    </svg>
+  )
+}
+
 export function DeleteIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>

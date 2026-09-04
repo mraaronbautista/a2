@@ -8,6 +8,10 @@ import { useProfiles } from '../hooks/useProfiles'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { RichTextEditor } from '../components/notes/RichTextEditor'
 import { CaseBriefFields, type CaseBrief } from '../components/notes/CaseBriefFields'
+import { CheckIcon, SpinnerIcon } from '../components/layout/icons'
+
+// How long to wait after the last keystroke before autosaving.
+const AUTOSAVE_DELAY_MS = 900
 
 const REALTIME_TABLES = ['notes']
 
@@ -113,7 +117,7 @@ export function NoteDetail() {
     }
   }
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
     if (!note || !user) return
     setSaving(true)
 
@@ -145,7 +149,33 @@ export function NoteDetail() {
     setNote((prev) => (prev ? { ...prev, last_edited_by: user.id, updated_at: updatedAt } : prev))
     setSaving(false)
     setDirty(false)
-  }
+  }, [note, user, title, courseId, visibility, tagsInput, content, caseBrief])
+
+  // Autosave: once something's dirty, wait for a pause in typing, then
+  // save. Resets on every keystroke via handleSave's changing identity, so
+  // it only actually fires AUTOSAVE_DELAY_MS after the last edit.
+  useEffect(() => {
+    if (!dirty || saving) return
+    const timer = setTimeout(() => {
+      handleSave()
+    }, AUTOSAVE_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [dirty, saving, handleSave])
+
+  // Flush any pending edit immediately when leaving the note, so a quick
+  // back-navigation doesn't lose the last few keystrokes to the debounce.
+  // Goes through a ref so the cleanup always calls the latest handleSave
+  // (with the latest field values), not a stale one captured at mount.
+  const handleSaveRef = useRef(handleSave)
+  useEffect(() => {
+    handleSaveRef.current = handleSave
+  }, [handleSave])
+  useEffect(() => {
+    return () => {
+      if (dirtyRef.current) handleSaveRef.current()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteId])
 
   async function handleDelete() {
     if (!note || !window.confirm(`Delete "${note.title || 'this note'}"?`)) return
@@ -187,13 +217,19 @@ export function NoteDetail() {
           <h1 className="text-2xl font-semibold text-navy">{title || 'Untitled'}</h1>
         )}
         {canManage && (
-          <button
-            onClick={handleSave}
-            disabled={saving || !dirty}
-            className="shrink-0 rounded-lg bg-navy px-4 py-2 text-sm font-medium text-bg disabled:opacity-40"
-          >
-            {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
-          </button>
+          <span className="flex shrink-0 items-center gap-1.5 text-xs text-ink-muted" aria-live="polite">
+            {saving || dirty ? (
+              <>
+                <SpinnerIcon className="h-3.5 w-3.5 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              <>
+                <CheckIcon className="h-3.5 w-3.5 text-accent" />
+                Saved
+              </>
+            )}
+          </span>
         )}
       </div>
 
