@@ -152,7 +152,7 @@ export function Budget() {
         ))}
       </div>
 
-      <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd} className="space-y-4">
+      <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd} className="min-h-[60dvh] space-y-4">
         {subView === 'overview' && user && householdId && (
           <BudgetView
             userId={user.id}

@@ -247,7 +247,7 @@ export function Us() {
         ))}
       </div>
 
-      <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd}>
+      <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd} className="min-h-[60dvh]">
         {subView === 'goals' && (
           <div className="space-y-3">
             {activeGoals.length === 0 ? (
