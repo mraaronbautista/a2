@@ -7,8 +7,9 @@ import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { ReadingItemRow } from '../components/courses/ReadingItemRow'
 import { AddReadingButton } from '../components/courses/AddReadingButton'
 import { EditCourseButton } from '../components/courses/EditCourseButton'
+import { SyllabusWorkspace, type SyllabusRow } from '../components/courses/SyllabusWorkspace'
 
-const REALTIME_TABLES = ['courses', 'reading_items']
+const REALTIME_TABLES = ['courses', 'reading_items', 'course_syllabi']
 
 type PrepStatus = 'unprepped' | 'prepped' | 'cold_called'
 
@@ -42,6 +43,7 @@ export function CourseDetail() {
 
   const [course, setCourse] = useState<Course | null>(null)
   const [readings, setReadings] = useState<ReadingItem[]>([])
+  const [syllabi, setSyllabi] = useState<SyllabusRow[]>([])
   const [statusByReading, setStatusByReading] = useState<Record<string, ReadingStatusRow>>({})
   const [loading, setLoading] = useState(true)
 
@@ -49,14 +51,20 @@ export function CourseDetail() {
     if (!courseId || !user) return
     setLoading(true)
 
-    const [courseRes, readingsRes] = await Promise.all([
+    const [courseRes, readingsRes, syllabiRes] = await Promise.all([
       supabase.from('courses').select('id, name, professor, color, owner_id, is_shared').eq('id', courseId).single(),
       supabase.from('reading_items').select('id, title, source_link, due_date, order_index').eq('course_id', courseId).order('order_index'),
+      supabase
+        .from('course_syllabi')
+        .select('id, created_by, original_name, storage_path, mime_type, size_bytes, extraction_status, extraction_method, extracted_text, edited_text, notes, updated_at')
+        .eq('course_id', courseId)
+        .order('created_at', { ascending: false }),
     ])
 
     setCourse((courseRes.data ?? null) as Course | null)
     const readingItems = (readingsRes.data ?? []) as ReadingItem[]
     setReadings(readingItems)
+    setSyllabi((syllabiRes.data ?? []) as SyllabusRow[])
 
     if (readingItems.length > 0) {
       const { data: statusRows } = await supabase
@@ -219,6 +227,17 @@ export function CourseDetail() {
           </ul>
         )}
       </div>
+
+      {user && householdId && (
+        <SyllabusWorkspace
+          courseId={course.id}
+          householdId={householdId}
+          userId={user.id}
+          canManage={canManage}
+          syllabi={syllabi}
+          onChanged={load}
+        />
+      )}
     </div>
   )
 }

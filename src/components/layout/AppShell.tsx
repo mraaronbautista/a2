@@ -10,6 +10,7 @@ import { QuickAddContext, type QuickAddHandler } from '../../hooks/useQuickAdd'
 import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
 import { NotesIcon, TimelineIcon, BudgetIcon, UsIcon } from './icons'
+import { PomodoroTimer } from '../study/PomodoroTimer'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Timeline', Icon: TimelineIcon },
@@ -150,6 +151,7 @@ export function AppShell() {
           )}
 
           {settingsOpen && <SettingsMenu theme={theme} toggleTheme={toggleTheme} onClose={() => setSettingsOpen(false)} />}
+          <PomodoroTimer />
         </div>
       </QuickAddContext.Provider>
     </SettingsContext.Provider>

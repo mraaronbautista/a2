@@ -286,6 +286,78 @@ export type Database = {
           },
         ]
       }
+      course_syllabi: {
+        Row: {
+          course_id: string
+          created_at: string
+          created_by: string
+          edited_text: string
+          extracted_text: string
+          extraction_method: string | null
+          extraction_status: string
+          household_id: string
+          id: string
+          mime_type: string | null
+          notes: string
+          original_name: string
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          created_by: string
+          edited_text?: string
+          extracted_text?: string
+          extraction_method?: string | null
+          extraction_status?: string
+          household_id: string
+          id?: string
+          mime_type?: string | null
+          notes?: string
+          original_name: string
+          size_bytes: number
+          storage_path: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          created_by?: string
+          edited_text?: string
+          extracted_text?: string
+          extraction_method?: string | null
+          extraction_status?: string
+          household_id?: string
+          id?: string
+          mime_type?: string | null
+          notes?: string
+          original_name?: string
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_syllabi_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_syllabi_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           completed_at: string | null
