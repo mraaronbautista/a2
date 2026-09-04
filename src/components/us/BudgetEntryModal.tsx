@@ -61,7 +61,7 @@ export function BudgetEntryModal({
   onSaved,
   onDeleted,
 }: BudgetEntryModalProps) {
-  const [type, setType] = useState<'income' | 'expense'>(entry?.type === 'income' || prefill ? 'income' : 'expense')
+  const [type, setType] = useState<'income' | 'expense' | 'transfer'>(entry?.type === 'income' || prefill ? 'income' : entry?.type ?? 'expense')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : prefill ? String(prefill.amount) : '')
   const [category, setCategory] = useState(entry?.category ?? prefill?.category ?? '')
   const [customMode, setCustomMode] = useState(() => {
@@ -73,6 +73,7 @@ export function BudgetEntryModal({
   const [tagsInput, setTagsInput] = useState((entry?.tags ?? []).join(', '))
   const [description, setDescription] = useState(entry?.description ?? '')
   const [accountId, setAccountId] = useState(entry?.account_id ?? prefill?.account_id ?? accounts[0]?.id ?? '')
+  const [toAccountId, setToAccountId] = useState(entry?.to_account_id ?? '')
   const [paidBy, setPaidBy] = useState(entry?.paid_by ?? prefill?.paid_by ?? userId)
   const [splitMode, setSplitMode] = useState<'shared' | 'personal'>(entry?.split_mode ?? 'personal')
   const [occurredOn, setOccurredOn] = useState(entry?.occurred_on ?? todayDateString())
@@ -80,9 +81,17 @@ export function BudgetEntryModal({
   const [deleting, setDeleting] = useState(false)
 
   const categoryOptions = type === 'income' ? BUDGET_INCOME_CATEGORIES : BUDGET_CATEGORIES
+  // A transfer's destination can't be its own source — paying down a
+  // credit card from itself isn't a real transfer.
+  const toAccountOptions = accounts.filter((a) => a.id !== accountId)
 
-  function switchType(next: 'income' | 'expense') {
+  function switchType(next: 'income' | 'expense' | 'transfer') {
     setType(next)
+    if (next === 'transfer') {
+      setCustomMode(false)
+      setCategory('')
+      return
+    }
     const list = next === 'income' ? BUDGET_INCOME_CATEGORIES : BUDGET_CATEGORIES
     if (!list.some((c) => c.label === category)) {
       setCustomMode(false)
@@ -94,6 +103,7 @@ export function BudgetEntryModal({
     e.preventDefault()
     const parsedAmount = Number(amount)
     if (!parsedAmount || parsedAmount <= 0 || !accountId) return
+    if (type === 'transfer' && !toAccountId) return
     setSaving(true)
 
     const tags = tagsInput
@@ -106,11 +116,13 @@ export function BudgetEntryModal({
       created_by: userId,
       type,
       amount: parsedAmount,
-      category: category.trim() || 'Uncategorized',
+      // A transfer is categorized by its destination account, not a
+      // budget category of its own (see 0016_accounts.sql).
+      category: type === 'transfer' ? null : category.trim() || 'Uncategorized',
       tags,
       description: description.trim() || null,
       account_id: accountId,
-      to_account_id: null,
+      to_account_id: type === 'transfer' ? toAccountId : null,
       paid_by: paidBy,
       split_mode: splitMode,
       occurred_on: occurredOn,
@@ -157,7 +169,7 @@ export function BudgetEntryModal({
         ) : (
           <>
             <div className="flex gap-2 text-xs">
-              {(['expense', 'income'] as const).map((t) => (
+              {(['expense', 'income', 'transfer'] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -189,7 +201,10 @@ export function BudgetEntryModal({
             <select
               required
               value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
+              onChange={(e) => {
+                setAccountId(e.target.value)
+                if (e.target.value === toAccountId) setToAccountId('')
+              }}
               className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
             >
               {accounts.map((a) => (
@@ -199,8 +214,28 @@ export function BudgetEntryModal({
               ))}
             </select>
 
-            <div className="grid grid-cols-3 gap-1.5">
-              {categoryOptions.map((c) => (
+            {type === 'transfer' && (
+              <select
+                required
+                value={toAccountId}
+                onChange={(e) => setToAccountId(e.target.value)}
+                className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              >
+                <option value="" disabled>
+                  To which account?
+                </option>
+                {toAccountOptions.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    To {a.name}
+                    {a.kind === 'debt' ? ' (pay down debt)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {type !== 'transfer' && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {categoryOptions.map((c) => (
                 <button
                   key={c.label}
                   type="button"
@@ -228,10 +263,11 @@ export function BudgetEntryModal({
                   customMode ? 'border-accent bg-accent-bg text-accent' : 'border-border bg-bg text-ink-muted',
                 ].join(' ')}
               >
-                <span className="text-lg leading-none">✏️</span>
-                Custom
-              </button>
-            </div>
+                  <span className="text-lg leading-none">✏️</span>
+                  Custom
+                </button>
+              </div>
+            )}
 
             {customMode && (
               <input
@@ -274,9 +310,11 @@ export function BudgetEntryModal({
                 onChange={(e) => setPaidBy(e.target.value)}
                 className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               >
-                <option value={userId}>{type === 'income' ? `${myLabel} got paid` : 'You paid'}</option>
+                <option value={userId}>{type === 'income' ? `${myLabel} got paid` : type === 'transfer' ? 'You moved it' : 'You paid'}</option>
                 {partnerId && (
-                  <option value={partnerId}>{type === 'income' ? `${partnerLabel} got paid` : `${partnerLabel} paid`}</option>
+                  <option value={partnerId}>
+                    {type === 'income' ? `${partnerLabel} got paid` : type === 'transfer' ? `${partnerLabel} moved it` : `${partnerLabel} paid`}
+                  </option>
                 )}
               </select>
             </div>
@@ -324,7 +362,9 @@ export function BudgetEntryModal({
             </button>
             <button
               type="submit"
-              disabled={saving || !amount || !category.trim() || accounts.length === 0}
+              disabled={
+                saving || !amount || accounts.length === 0 || (type === 'transfer' ? !toAccountId : !category.trim())
+              }
               className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-bg disabled:opacity-50"
             >
               {saving ? 'Saving…' : 'Save'}

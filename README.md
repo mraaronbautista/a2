@@ -34,16 +34,20 @@ detail view shows who last touched it and when; Courses is reading lists with pe
 + class-prep/cold-call tracking, an "Add reading" form with a Bulk mode — one reading per line,
 paste a whole syllabus at once — a "+ Note" link on each reading that jumps straight into a new
 note already titled and tagged to that course, and an "is_shared" classmates toggle so both
-partners can manage the same reading list), **Budget** (a joint income/expense tracker with a
-tap-to-pick category grid — Food & Drink, Transportation, Housing & Utilities, School & Books,
-Personal Care, Shopping, Health Care, Entertainment, Subscriptions, Gifts, plus a Custom
-fallback — an optional monthly limit per category shown as spent-vs-planned with its own progress
-bar, an overall monthly total that rolls up whatever limits are set, a running shared-expense
-balance ("who owes whom") computed from whichever transactions are marked Split 50/50 rather than
-Personal, and recurring income templates that aren't monthly-only — Monthly (day of month), Weekly,
-or Biweekly (day of week, plus one anchor date to pin which week — "every 2nd Wednesday" needs to
-know 2nd-since-when); nothing auto-posts from a template, it just tracks "expected, not yet logged"
-and pre-fills the entry form when you log it), and **Us** (a Goals/Thoughts sub-view toggle — Goals is short/long-term aspirations for
+partners can manage the same reading list), **Budget** (real accounts — asset/debt/savings, balance
+always derived from starting_balance + everything posted, never stored — with an Expense/Income/
+Transfer entry form; a transfer moves money between two of your own accounts in one step, so paying
+down a credit card or funding a savings goal is a "From ... To ..." pick rather than two manual
+entries, and correctly reduces what a debt account shows as owed. A tap-to-pick category grid on
+expense/income — Food & Drink, Transportation, Housing & Utilities, School & Books, Personal Care,
+Shopping, Health Care, Entertainment, Subscriptions, Gifts, plus a Custom fallback — an optional
+monthly limit per category shown as spent-vs-planned with its own progress bar, an overall monthly
+total that rolls up whatever limits are set, a running shared-expense balance ("who owes whom")
+computed from whichever transactions are marked Split 50/50 rather than Personal, and recurring
+income templates that aren't monthly-only — Monthly (day of month), Weekly, or Biweekly (day of
+week, plus one anchor date to pin which week — "every 2nd Wednesday" needs to know
+2nd-since-when); nothing auto-posts from a template, it just tracks "expected, not yet logged" and
+pre-fills the entry form when you log it), and **Us** (a Goals/Thoughts sub-view toggle — Goals is short/long-term aspirations for
 both partners, title + optional target date + done/not done, private-or-shared like tasks; Thoughts
 is an inbox for unstructured shared notes with comment threads, archiving, and one-tap promotion
 into a task, carrying any existing comments over as checklist items). The mobile nav is a floating
