@@ -618,11 +618,14 @@ export type Database = {
         Row: {
           account_id: string
           amount: number
+          anchor_date: string | null
           archived: boolean
           category: string
           created_at: string
           created_by: string
-          day_of_month: number
+          day_of_month: number | null
+          day_of_week: number | null
+          frequency: string
           household_id: string
           id: string
           label: string
@@ -631,11 +634,14 @@ export type Database = {
         Insert: {
           account_id: string
           amount: number
+          anchor_date?: string | null
           archived?: boolean
           category: string
           created_at?: string
           created_by: string
-          day_of_month: number
+          day_of_month?: number | null
+          day_of_week?: number | null
+          frequency?: string
           household_id: string
           id?: string
           label: string
@@ -644,11 +650,14 @@ export type Database = {
         Update: {
           account_id?: string
           amount?: number
+          anchor_date?: string | null
           archived?: boolean
           category?: string
           created_at?: string
           created_by?: string
-          day_of_month?: number
+          day_of_month?: number | null
+          day_of_week?: number | null
+          frequency?: string
           household_id?: string
           id?: string
           label?: string

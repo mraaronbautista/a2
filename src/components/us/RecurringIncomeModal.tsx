@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { BUDGET_INCOME_CATEGORIES } from '../../lib/budgetCategories'
+import { WEEKDAY_LABELS, type RecurringFrequency } from '../../lib/recurringSchedule'
 import type { Account } from './AccountModal'
 
 export interface RecurringIncome {
@@ -9,7 +10,10 @@ export interface RecurringIncome {
   category: string
   amount: number
   account_id: string
-  day_of_month: number
+  frequency: RecurringFrequency
+  day_of_month: number | null
+  day_of_week: number | null
+  anchor_date: string | null
   paid_by: string
   archived: boolean
 }
@@ -43,7 +47,10 @@ export function RecurringIncomeModal({
   const [category, setCategory] = useState(template?.category ?? BUDGET_INCOME_CATEGORIES[0].label)
   const [amount, setAmount] = useState(template ? String(template.amount) : '')
   const [accountId, setAccountId] = useState(template?.account_id ?? accounts[0]?.id ?? '')
-  const [dayOfMonth, setDayOfMonth] = useState(template ? String(template.day_of_month) : '1')
+  const [frequency, setFrequency] = useState<RecurringFrequency>(template?.frequency ?? 'monthly')
+  const [dayOfMonth, setDayOfMonth] = useState(template?.day_of_month ? String(template.day_of_month) : '1')
+  const [dayOfWeek, setDayOfWeek] = useState(template?.day_of_week ?? 1)
+  const [anchorDate, setAnchorDate] = useState(template?.anchor_date ?? new Date().toISOString().slice(0, 10))
   const [paidBy, setPaidBy] = useState(template?.paid_by ?? userId)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -53,7 +60,9 @@ export function RecurringIncomeModal({
     const trimmed = label.trim()
     const parsedAmount = Number(amount)
     const day = Number(dayOfMonth)
-    if (!trimmed || !parsedAmount || parsedAmount <= 0 || !accountId || day < 1 || day > 31) return
+    if (!trimmed || !parsedAmount || parsedAmount <= 0 || !accountId) return
+    if (frequency === 'monthly' && (day < 1 || day > 31)) return
+    if (frequency === 'biweekly' && !anchorDate) return
     setSaving(true)
 
     const payload = {
@@ -63,7 +72,10 @@ export function RecurringIncomeModal({
       category,
       amount: parsedAmount,
       account_id: accountId,
-      day_of_month: day,
+      frequency,
+      day_of_month: frequency === 'monthly' ? day : null,
+      day_of_week: frequency === 'monthly' ? null : dayOfWeek,
+      anchor_date: frequency === 'biweekly' ? anchorDate : null,
       paid_by: paidBy,
     }
 
@@ -153,19 +165,55 @@ export function RecurringIncomeModal({
           ))}
         </select>
 
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <span className="text-xs text-ink-muted">Day of month</span>
-            <input
-              type="number"
-              required
-              min="1"
-              max="31"
-              value={dayOfMonth}
-              onChange={(e) => setDayOfMonth(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-            />
+        <div>
+          <span className="text-xs text-ink-muted">Repeats</span>
+          <div className="mt-1 flex gap-1.5">
+            {(['monthly', 'weekly', 'biweekly'] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFrequency(f)}
+                className={[
+                  'flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium capitalize',
+                  frequency === f ? 'border-accent bg-accent-bg text-accent' : 'border-border bg-bg text-ink-muted',
+                ].join(' ')}
+              >
+                {f}
+              </button>
+            ))}
           </div>
+        </div>
+
+        <div className="flex gap-2">
+          {frequency === 'monthly' ? (
+            <div className="flex-1">
+              <span className="text-xs text-ink-muted">Day of month</span>
+              <input
+                type="number"
+                required
+                min="1"
+                max="31"
+                value={dayOfMonth}
+                onChange={(e) => setDayOfMonth(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              />
+            </div>
+          ) : (
+            <div className="flex-1">
+              <span className="text-xs text-ink-muted">Day of week</span>
+              <select
+                value={dayOfWeek}
+                onChange={(e) => setDayOfWeek(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              >
+                {WEEKDAY_LABELS.map((label, i) => (
+                  <option key={label} value={i}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex-1">
             <span className="text-xs text-ink-muted">Received by</span>
             <select
@@ -178,6 +226,19 @@ export function RecurringIncomeModal({
             </select>
           </div>
         </div>
+
+        {frequency === 'biweekly' && (
+          <label className="block text-xs text-ink-muted">
+            One occurrence, to pin which {WEEKDAY_LABELS[dayOfWeek]}s (e.g. today, if you were just paid)
+            <input
+              type="date"
+              required
+              value={anchorDate}
+              onChange={(e) => setAnchorDate(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+            />
+          </label>
+        )}
 
         <div className="flex items-center justify-between gap-2 pt-2">
           {template ? (

@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns'
 import { iconForCategory } from '../../lib/budgetCategories'
 import type { Account } from './AccountModal'
 import type { BudgetTransaction } from './BudgetEntryModal'
+import { scheduleLabel } from '../../lib/recurringSchedule'
 import type { RecurringIncome } from './RecurringIncomeModal'
 
 interface BudgetViewProps {
@@ -313,7 +314,7 @@ export function BudgetView({
           expectedIncome.map((r) => (
             <div key={r.id} className="flex items-center justify-between gap-2 text-xs">
               <button onClick={() => onEditRecurring(r)} className="min-w-0 flex-1 truncate text-left text-ink hover:text-accent">
-                {iconForCategory(r.category)} {r.label} · day {r.day_of_month}
+                {iconForCategory(r.category)} {r.label} · {scheduleLabel(r)}
               </button>
               <span className="shrink-0 text-ink-muted">₱{r.amount.toFixed(2)}</span>
               <button

@@ -53,8 +53,8 @@ export function Budget() {
       supabase.from('accounts').select('id, name, kind, target_amount, starting_balance, archived, owner_id').order('created_at', { ascending: true }),
       supabase
         .from('recurring_income')
-        .select('id, label, category, amount, account_id, day_of_month, paid_by, archived')
-        .order('day_of_month', { ascending: true }),
+        .select('id, label, category, amount, account_id, frequency, day_of_month, day_of_week, anchor_date, paid_by, archived')
+        .order('created_at', { ascending: true }),
     ])
 
     setTransactions((budgetRes.data ?? []) as BudgetTransaction[])

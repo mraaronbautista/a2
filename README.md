@@ -38,9 +38,12 @@ partners can manage the same reading list), **Budget** (a joint income/expense t
 tap-to-pick category grid — Food & Drink, Transportation, Housing & Utilities, School & Books,
 Personal Care, Shopping, Health Care, Entertainment, Subscriptions, Gifts, plus a Custom
 fallback — an optional monthly limit per category shown as spent-vs-planned with its own progress
-bar, an overall monthly total that rolls up whatever limits are set, and a running shared-expense
+bar, an overall monthly total that rolls up whatever limits are set, a running shared-expense
 balance ("who owes whom") computed from whichever transactions are marked Split 50/50 rather than
-Personal), and **Us** (a Goals/Thoughts sub-view toggle — Goals is short/long-term aspirations for
+Personal, and recurring income templates that aren't monthly-only — Monthly (day of month), Weekly,
+or Biweekly (day of week, plus one anchor date to pin which week — "every 2nd Wednesday" needs to
+know 2nd-since-when); nothing auto-posts from a template, it just tracks "expected, not yet logged"
+and pre-fills the entry form when you log it), and **Us** (a Goals/Thoughts sub-view toggle — Goals is short/long-term aspirations for
 both partners, title + optional target date + done/not done, private-or-shared like tasks; Thoughts
 is an inbox for unstructured shared notes with comment threads, archiving, and one-tap promotion
 into a task, carrying any existing comments over as checklist items). The mobile nav is a floating
