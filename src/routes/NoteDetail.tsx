@@ -7,8 +7,10 @@ import { useAuth } from '../hooks/useAuth'
 import { useProfiles } from '../hooks/useProfiles'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { RichTextEditor } from '../components/notes/RichTextEditor'
+import { PaginatedEditor } from '../components/notes/PaginatedEditor'
 import { CaseBriefFields, type CaseBrief } from '../components/notes/CaseBriefFields'
 import { CheckIcon, SpinnerIcon } from '../components/layout/icons'
+import { DEFAULT_PAGE_SETTINGS, type PageSettings } from '../lib/pageSizes'
 
 // How long to wait after the last keystroke before autosaving.
 const AUTOSAVE_DELAY_MS = 900
@@ -30,7 +32,7 @@ interface Course {
 interface NoteRow {
   id: string
   title: string
-  type: 'case_brief' | 'freeform'
+  type: 'case_brief' | 'freeform' | 'paginated'
   visibility: 'private' | 'shared'
   space: 'law' | 'personal'
   owner_id: string
@@ -39,6 +41,7 @@ interface NoteRow {
   tags: string[]
   updated_at: string
   content: JSONContent | null
+  page_settings: PageSettings | null
   case_brief_facts: string | null
   case_brief_issue: string | null
   case_brief_holding: string | null
@@ -63,6 +66,7 @@ export function NoteDetail() {
   const [visibility, setVisibility] = useState<'private' | 'shared'>('private')
   const [tagsInput, setTagsInput] = useState('')
   const [content, setContent] = useState<JSONContent | null>(null)
+  const [pageSettings, setPageSettings] = useState<PageSettings>(DEFAULT_PAGE_SETTINGS)
   const [caseBrief, setCaseBrief] = useState<CaseBrief>({ facts: '', issue: '', holding: '', reasoning: '', dissent: '' })
 
   // Only the very first fetch of a given note should show the full-page
@@ -79,7 +83,7 @@ export function NoteDetail() {
       supabase
         .from('notes')
         .select(
-          'id, title, type, visibility, space, owner_id, last_edited_by, course_id, tags, updated_at, content, case_brief_facts, case_brief_issue, case_brief_holding, case_brief_reasoning, case_brief_dissent',
+          'id, title, type, visibility, space, owner_id, last_edited_by, course_id, tags, updated_at, content, page_settings, case_brief_facts, case_brief_issue, case_brief_holding, case_brief_reasoning, case_brief_dissent',
         )
         .eq('id', noteId)
         .single(),
@@ -96,6 +100,7 @@ export function NoteDetail() {
       setVisibility(n.visibility)
       setTagsInput((n.tags ?? []).join(', '))
       setContent(n.content)
+      setPageSettings(n.page_settings ?? DEFAULT_PAGE_SETTINGS)
       setCaseBrief({
         facts: n.case_brief_facts ?? '',
         issue: n.case_brief_issue ?? '',
@@ -159,7 +164,8 @@ export function NoteDetail() {
         course_id: courseId || null,
         visibility,
         tags,
-        content: note.type === 'freeform' ? content : null,
+        content: note.type === 'freeform' || note.type === 'paginated' ? content : null,
+        page_settings: note.type === 'paginated' ? pageSettings : null,
         case_brief_facts: note.type === 'case_brief' ? caseBrief.facts : null,
         case_brief_issue: note.type === 'case_brief' ? caseBrief.issue : null,
         case_brief_holding: note.type === 'case_brief' ? caseBrief.holding : null,
@@ -173,7 +179,7 @@ export function NoteDetail() {
     setNote((prev) => (prev ? { ...prev, last_edited_by: user.id, updated_at: updatedAt } : prev))
     setSaving(false)
     setDirty(false)
-  }, [note, user, title, courseId, visibility, tagsInput, content, caseBrief])
+  }, [note, user, title, courseId, visibility, tagsInput, content, pageSettings, caseBrief])
 
   // Autosave: once something's dirty, wait for a pause in typing, then
   // save. Resets on every keystroke via handleSave's changing identity, so
@@ -301,8 +307,60 @@ export function NoteDetail() {
         </div>
       )}
 
+      {canManage && note.type === 'paginated' && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {(['a4', 'letter'] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => markDirty(setPageSettings)({ ...pageSettings, paper: p })}
+              className={['rounded-full px-3 py-1 font-medium uppercase', pageSettings.paper === p ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(
+                ' ',
+              )}
+            >
+              {p}
+            </button>
+          ))}
+          {(['portrait', 'landscape'] as const).map((o) => (
+            <button
+              key={o}
+              type="button"
+              onClick={() => markDirty(setPageSettings)({ ...pageSettings, orientation: o })}
+              className={[
+                'rounded-full px-3 py-1 font-medium capitalize',
+                pageSettings.orientation === o ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
+              ].join(' ')}
+            >
+              {o}
+            </button>
+          ))}
+          <label className="flex items-center gap-1.5 text-ink-muted">
+            Margin
+            <input
+              type="number"
+              min="0"
+              step="0.25"
+              value={pageSettings.marginIn}
+              onChange={(e) => markDirty(setPageSettings)({ ...pageSettings, marginIn: Number(e.target.value) || 0 })}
+              className="w-14 rounded-lg border border-border bg-bg px-1.5 py-1 text-ink outline-none focus:border-accent"
+            />
+            in
+          </label>
+        </div>
+      )}
+
       {note.type === 'case_brief' ? (
         <CaseBriefFields value={caseBrief} editable={canManage} onChange={markDirty(setCaseBrief)} />
+      ) : note.type === 'paginated' ? (
+        user && (
+          <PaginatedEditor
+            content={content}
+            editable={canManage}
+            userId={user.id}
+            pageSettings={pageSettings}
+            onChange={markDirty(setContent)}
+          />
+        )
       ) : (
         user && <RichTextEditor content={content} editable={canManage} userId={user.id} onChange={markDirty(setContent)} />
       )}

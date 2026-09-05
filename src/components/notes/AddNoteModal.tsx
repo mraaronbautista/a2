@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
+import { DEFAULT_PAGE_SETTINGS, type Orientation, type PaperSize } from '../../lib/pageSizes'
 
 interface Course {
   id: string
@@ -15,16 +16,34 @@ interface AddNoteModalProps {
   onClose: () => void
 }
 
+type NoteType = 'freeform' | 'case_brief' | 'paginated'
+
 export function AddNoteModal({ householdId, userId, space, courses, onClose }: AddNoteModalProps) {
   const navigate = useNavigate()
   const [title, setTitle] = useState('')
-  const [type, setType] = useState<'freeform' | 'case_brief'>('freeform')
+  const [type, setType] = useState<NoteType>('freeform')
   const [courseId, setCourseId] = useState('')
+  const [paper, setPaper] = useState<PaperSize>(DEFAULT_PAGE_SETTINGS.paper)
+  const [orientation, setOrientation] = useState<Orientation>(DEFAULT_PAGE_SETTINGS.orientation)
   const [saving, setSaving] = useState(false)
+
+  const typeOptions: [NoteType, string][] =
+    space === 'law'
+      ? [
+          ['freeform', 'Freeform'],
+          ['case_brief', 'Case brief'],
+          ['paginated', 'Paginated document'],
+        ]
+      : [
+          ['freeform', 'Freeform'],
+          ['paginated', 'Paginated document'],
+        ]
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
+
+    const resolvedType: NoteType = space === 'law' ? type : type === 'case_brief' ? 'freeform' : type
 
     const { data } = await supabase
       .from('notes')
@@ -32,10 +51,11 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
         household_id: householdId,
         owner_id: userId,
         course_id: space === 'law' ? courseId || null : null,
-        type: space === 'law' ? type : 'freeform',
+        type: resolvedType,
         title,
         visibility: 'shared',
         space,
+        page_settings: resolvedType === 'paginated' ? { paper, orientation, marginIn: DEFAULT_PAGE_SETTINGS.marginIn } : null,
       })
       .select('id')
       .single()
@@ -62,23 +82,50 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
           className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         />
 
-        {space === 'law' && (
-          <div className="flex gap-2 text-xs">
-            {(
-              [
-                ['freeform', 'Freeform'],
-                ['case_brief', 'Case brief'],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setType(value)}
-                className={['rounded-full px-3 py-1 font-medium', type === value ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}
-              >
-                {label}
-              </button>
-            ))}
+        <div className="flex flex-wrap gap-2 text-xs">
+          {typeOptions.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setType(value)}
+              className={['rounded-full px-3 py-1 font-medium', type === value ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {type === 'paginated' && (
+          <div className="space-y-2 rounded-lg border border-border bg-bg p-2.5">
+            <div className="flex gap-1.5 text-xs">
+              {(['a4', 'letter'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPaper(p)}
+                  className={['flex-1 rounded-full px-3 py-1 font-medium uppercase', paper === p ? 'bg-accent-bg text-accent' : 'bg-surface text-ink-muted'].join(
+                    ' ',
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1.5 text-xs">
+              {(['portrait', 'landscape'] as const).map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setOrientation(o)}
+                  className={[
+                    'flex-1 rounded-full px-3 py-1 font-medium capitalize',
+                    orientation === o ? 'bg-accent-bg text-accent' : 'bg-surface text-ink-muted',
+                  ].join(' ')}
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

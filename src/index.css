@@ -157,3 +157,58 @@ textarea {
   background: var(--color-accent-bg);
   color: #1b2436;
 }
+
+/* Paginated notes (see PaginatedEditor.tsx) — a manual page break renders
+   as a thin labeled divider in the editor; ink/print treat it as
+   invisible structure, not content. */
+.paginated-content [data-page-break] {
+  height: 0;
+  border-top: 1px dashed var(--color-border);
+  margin: 0.5rem 0;
+}
+.paginated-content [data-page-break]::after {
+  content: 'Page break';
+  display: block;
+  width: fit-content;
+  margin: -0.5em auto 0;
+  padding: 0 0.4em;
+  background: var(--color-surface);
+  font-size: 0.65rem;
+  color: var(--color-ink-muted);
+}
+/* The blank spacers PaginationExtension inserts to push content to the
+   next page sheet — structural, never meant to be seen as a gap. */
+.page-break-spacer {
+  pointer-events: none;
+}
+
+/* Printing a paginated note: hide everything except the page stack
+   itself (app nav, toolbar, title/course/tag chrome, "Last edited by",
+   etc.), and let its own page-sized boxes — the same ones shown on
+   screen — become the actual printed pages. Nothing here recomputes
+   layout for print; it reuses exactly what's already on screen, which is
+   the whole point of pagination being measured against real physical
+   units (see lib/pageSizes.ts) instead of arbitrary CSS pixels. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .paginated-page-stack,
+  .paginated-page-stack * {
+    visibility: visible;
+  }
+  .paginated-page-stack {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: none !important;
+    margin: 0 !important;
+  }
+  .paginated-page-sheet {
+    box-shadow: none !important;
+    break-after: page;
+  }
+  .paginated-scroll-area {
+    overflow: visible !important;
+  }
+}
