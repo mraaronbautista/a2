@@ -52,12 +52,29 @@ export function useReadingAnnotations(readingId: string, userId: string) {
     return result.error ? null : item
   }
   async function upsertNote(page: number, body: string, quotedText: string | null = null, anchor: TextAnchor | null = null) {
+    const trimmedBody = body.slice(0, 20_000)
+    const existing = annotations.find((item) => item.kind === 'note' && item.page_number === page)
+
+    if (!trimmedBody.trim() && !quotedText) {
+      if (existing) await deleteAnnotation(existing.id)
+      return null
+    }
+
+    if (existing) {
+      const previous = annotations
+      const updated: ReadingAnnotation = { ...existing, body: trimmedBody, quoted_text: quotedText, anchor }
+      setAnnotations((items) => items.map((item) => (item.id === existing.id ? updated : item)))
+      const result = await supabase.from('reading_annotations').update({ body: trimmedBody, quoted_text: quotedText, anchor: anchor as unknown as Json }).eq('id', existing.id)
+      if (result.error) { setAnnotations(previous); setError(result.error.message); return null }
+      return updated
+    }
+
     const id = crypto.randomUUID(); const created_at = new Date().toISOString()
-    const item: ReadingAnnotation = { id, page_number: page, kind: 'note', color: 'yellow', quoted_text: quotedText, body, anchor, created_at }
+    const item: ReadingAnnotation = { id, page_number: page, kind: 'note', color: 'yellow', quoted_text: quotedText, body: trimmedBody, anchor, created_at }
     setAnnotations((items) => [...items, item])
-    const result = await supabase.from('reading_annotations').insert({ id, reading_item_id: readingId, user_id: userId, page_number: page, kind: 'note', body: body.slice(0, 20_000), quoted_text: quotedText, anchor: anchor as unknown as Json })
-    if (result.error) { setAnnotations((items) => items.filter((annotation) => annotation.id !== id)); setError(result.error.message) }
-    return result.error ? null : item
+    const result = await supabase.from('reading_annotations').insert({ id, reading_item_id: readingId, user_id: userId, page_number: page, kind: 'note', body: trimmedBody, quoted_text: quotedText, anchor: anchor as unknown as Json })
+    if (result.error) { setAnnotations((items) => items.filter((annotation) => annotation.id !== id)); setError(result.error.message); return null }
+    return item
   }
   async function deleteAnnotation(id: string) {
     const previous = annotations; setAnnotations((items) => items.filter((item) => item.id !== id))

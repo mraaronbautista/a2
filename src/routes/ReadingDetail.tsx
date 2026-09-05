@@ -72,7 +72,11 @@ export function ReadingDetail() {
   const print = useCallback(() => { if (!pdfState.pdfBlob) return; const url = URL.createObjectURL(pdfState.pdfBlob); const frame = document.createElement('iframe'); frame.style.position = 'fixed'; frame.style.width = '1px'; frame.style.height = '1px'; frame.style.opacity = '0'; frame.src = url; frame.onload = () => { frame.contentWindow?.focus(); frame.contentWindow?.print(); window.setTimeout(() => { frame.remove(); URL.revokeObjectURL(url) }, 30_000) }; document.body.appendChild(frame) }, [pdfState.pdfBlob])
   async function copyCitation() { if (!reading || !selection) return; await navigator.clipboard.writeText(formatQuoteCitation(selection.text, reading.title, progress.page)); setSelection(null) }
   async function highlight(color: AnnotationColor) { if (!selection) return; await state.createHighlight(progress.page, selection.text, color, selection.anchor); window.getSelection()?.removeAllRanges(); setSelection(null) }
-  function addPageNote() { setPageNoteDraft(''); setPageNoteOpen(true) }
+  function addPageNote() {
+    const existing = state.annotations.find((item) => item.kind === 'note' && item.page_number === progress.page)
+    setPageNoteDraft(existing?.body ?? '')
+    setPageNoteOpen(true)
+  }
   async function savePageNote() { const body = pageNoteDraft.trim(); if (!body) { setPageNoteOpen(false); return }; setSavingPageNote(true); const saved = await state.upsertNote(progress.page, body, selection?.text ?? null, selection?.anchor ?? null); setSavingPageNote(false); if (saved) { setPageNoteOpen(false); setSelection(null) } }
   function deleteAnnotation(item: ReadingAnnotation) { if (item.body && !window.confirm('Delete this annotation?')) return; void state.deleteAnnotation(item.id) }
 
