@@ -122,6 +122,46 @@ textarea {
   color: var(--color-navy);
 }
 
+/* Checklists (TaskList/TaskItem) — no bullet, checkbox sits inline with
+   the item text rather than Tiptap's default block layout. */
+.tiptap-content ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+.tiptap-content ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.tiptap-content ul[data-type='taskList'] li > label {
+  margin-top: 0.2rem;
+}
+.tiptap-content ul[data-type='taskList'] li > div {
+  flex: 1;
+}
+.tiptap-content ul[data-type='taskList'] li[data-checked='true'] > div {
+  color: var(--color-ink-muted);
+  text-decoration: line-through;
+}
+
+/* Tables — Tiptap ships none of this by default. */
+.tiptap-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+}
+.tiptap-content th,
+.tiptap-content td {
+  border: 1px solid var(--color-border);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+.tiptap-content th {
+  background: var(--color-bg);
+  font-weight: 600;
+}
+
 .tiptap-content h1 {
   font-size: 1.5rem;
   margin: 1rem 0 0.5rem;
@@ -180,6 +220,16 @@ textarea {
    next page sheet — structural, never meant to be seen as a gap. */
 .page-break-spacer {
   pointer-events: none;
+}
+
+/* FindReplaceExtension's match highlights. */
+.find-match {
+  background: var(--color-accent-bg);
+  border-radius: 0.15rem;
+}
+.find-match-current {
+  background: var(--color-accent);
+  color: white;
 }
 
 /* Printing a paginated note: hide everything except the page stack

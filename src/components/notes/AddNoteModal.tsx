@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { DEFAULT_PAGE_SETTINGS, type Orientation, type PaperSize } from '../../lib/pageSizes'
+import { DEFAULT_PAGE_SETTINGS, type Orientation, type PaperSize, type PaperStyle } from '../../lib/pageSizes'
 
 interface Course {
   id: string
@@ -25,6 +25,7 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
   const [courseId, setCourseId] = useState('')
   const [paper, setPaper] = useState<PaperSize>(DEFAULT_PAGE_SETTINGS.paper)
   const [orientation, setOrientation] = useState<Orientation>(DEFAULT_PAGE_SETTINGS.orientation)
+  const [paperStyle, setPaperStyle] = useState<PaperStyle>(DEFAULT_PAGE_SETTINGS.paperStyle ?? 'blank')
   const [saving, setSaving] = useState(false)
 
   const typeOptions: [NoteType, string][] =
@@ -55,7 +56,7 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
         title,
         visibility: 'shared',
         space,
-        page_settings: resolvedType === 'paginated' ? { paper, orientation, marginIn: DEFAULT_PAGE_SETTINGS.marginIn } : null,
+        page_settings: resolvedType === 'paginated' ? { paper, orientation, marginIn: DEFAULT_PAGE_SETTINGS.marginIn, paperStyle } : null,
       })
       .select('id')
       .single()
@@ -123,6 +124,21 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
                   ].join(' ')}
                 >
                   {o}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1.5 text-xs">
+              {(['blank', 'ruled', 'grid', 'dotted'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPaperStyle(p)}
+                  className={[
+                    'rounded-full px-3 py-1 font-medium capitalize',
+                    paperStyle === p ? 'bg-accent-bg text-accent' : 'bg-surface text-ink-muted',
+                  ].join(' ')}
+                >
+                  {p}
                 </button>
               ))}
             </div>

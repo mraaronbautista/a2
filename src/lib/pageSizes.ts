@@ -1,13 +1,34 @@
 export type PaperSize = 'a4' | 'letter'
 export type Orientation = 'portrait' | 'landscape'
+export type PaperStyle = 'blank' | 'ruled' | 'grid' | 'dotted'
 
 export type PageSettings = {
   paper: PaperSize
   orientation: Orientation
   marginIn: number
+  paperStyle?: PaperStyle
 }
 
-export const DEFAULT_PAGE_SETTINGS: PageSettings = { paper: 'a4', orientation: 'portrait', marginIn: 1 }
+export const DEFAULT_PAGE_SETTINGS: PageSettings = { paper: 'a4', orientation: 'portrait', marginIn: 1, paperStyle: 'blank' }
+
+// CSS background-image patterns for each paper style, drawn with
+// repeating gradients rather than an image asset — scales cleanly to any
+// zoom level and needs no file to keep in sync with page size changes.
+export const PAPER_STYLE_BACKGROUND: Record<PaperStyle, string> = {
+  blank: 'none',
+  ruled: 'repeating-linear-gradient(to bottom, transparent, transparent 27px, var(--color-border) 27px, var(--color-border) 28px)',
+  grid: [
+    'repeating-linear-gradient(to bottom, transparent, transparent 23px, var(--color-border) 23px, var(--color-border) 24px)',
+    'repeating-linear-gradient(to right, transparent, transparent 23px, var(--color-border) 23px, var(--color-border) 24px)',
+  ].join(', '),
+  dotted: 'radial-gradient(var(--color-border) 1px, transparent 1.5px)',
+}
+export const PAPER_STYLE_BACKGROUND_SIZE: Record<PaperStyle, string> = {
+  blank: 'auto',
+  ruled: 'auto',
+  grid: 'auto',
+  dotted: '20px 20px',
+}
 
 // Base (portrait) dimensions in CSS mm — using real physical units rather
 // than px means the on-screen page and the printed page (`@page { size }`

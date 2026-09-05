@@ -229,7 +229,7 @@ export function NoteDetail() {
   const lastEditorLabel = lastEditorId === user?.id ? 'you' : (profiles[lastEditorId] ?? 'partner')
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6 pb-16">
+    <div className={['mx-auto space-y-4 p-6 pb-16', note.type === 'paginated' ? 'max-w-5xl' : 'max-w-2xl'].join(' ')}>
       <Link to={note.space === 'personal' ? '/us?view=notes' : '/notes'} className="text-sm text-ink-muted hover:text-ink">
         {note.space === 'personal' ? '← Us' : '← Law'}
       </Link>
@@ -346,6 +346,19 @@ export function NoteDetail() {
             />
             in
           </label>
+          {(['blank', 'ruled', 'grid', 'dotted'] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => markDirty(setPageSettings)({ ...pageSettings, paperStyle: p })}
+              className={[
+                'rounded-full px-3 py-1 font-medium capitalize',
+                (pageSettings.paperStyle ?? 'blank') === p ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
+              ].join(' ')}
+            >
+              {p}
+            </button>
+          ))}
         </div>
       )}
 
