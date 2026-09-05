@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useReducer, useRef, useState } from 'react'
 import { EditorContent, useEditor, type JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Highlight from '@tiptap/extension-highlight'
@@ -33,7 +33,11 @@ interface PaginatedEditorProps {
   userId: string
   pageSettings: PageSettings
   onChange: (content: JSONContent) => void
+  onPagesChange?: (pages: { pageNumber: number; textPreview: string }[]) => void
+  onVisiblePageChange?: (pageNumber: number) => void
 }
+
+export interface PaginatedEditorHandle { scrollToPage: (pageNumber: number) => void }
 
 const BUTTON_CLASS = 'rounded px-2 py-1 text-xs font-medium text-ink-muted hover:bg-bg hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent'
 const ACTIVE_CLASS = 'bg-accent-bg text-accent'
@@ -54,7 +58,7 @@ function mmToPx(mm: number) {
   return mm * PX_PER_MM
 }
 
-export function PaginatedEditor({ content, editable, userId, pageSettings, onChange }: PaginatedEditorProps) {
+export const PaginatedEditor = forwardRef<PaginatedEditorHandle, PaginatedEditorProps>(function PaginatedEditor({ content, editable, userId, pageSettings, onChange, onPagesChange, onVisiblePageChange }, ref) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [, forceRerender] = useReducer((c: number) => c + 1, 0)
   const [pageCount, setPageCount] = useState(1)
@@ -62,6 +66,7 @@ export function PaginatedEditor({ content, editable, userId, pageSettings, onCha
   const [fitToWidth, setFitToWidth] = useState(true)
   const [findOpen, setFindOpen] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
+  const [includeBackgroundInPrint, setIncludeBackgroundInPrint] = useState(false)
   const [findQuery, setFindQuery] = useState('')
   const [replaceQuery, setReplaceQuery] = useState('')
   const [matches, setMatches] = useState<FindMatch[]>([])
@@ -161,6 +166,12 @@ export function PaginatedEditor({ content, editable, userId, pageSettings, onCha
     // division to keep consistent with the loop above.
     setPageCount(spacers.length + 1)
 
+    const boundaries = [0, ...spacers.map((spacer) => spacer.pos), editor.state.doc.content.size]
+    onPagesChange?.(boundaries.slice(0, -1).map((from, index) => ({
+      pageNumber: index + 1,
+      textPreview: editor.state.doc.textBetween(from, boundaries[index + 1], ' ', ' ').trim().slice(0, 180),
+    })))
+
     applyPageBreaks(editor, spacers)
   }
 
@@ -182,6 +193,17 @@ export function PaginatedEditor({ content, editable, userId, pageSettings, onCha
   }, [editor, pageSettings.paper, pageSettings.orientation, pageSettings.marginIn])
 
   const dims = useMemo(() => pageDimensionsMm(pageSettings.paper, pageSettings.orientation), [pageSettings.paper, pageSettings.orientation])
+
+  useImperativeHandle(ref, () => ({ scrollToPage(pageNumber: number) { scrollAreaRef.current?.scrollTo({ top: (pageNumber - 1) * mmToPx(dims.height) * zoom, behavior: 'smooth' }) } }), [dims.height, zoom])
+
+  useEffect(() => {
+    const el = scrollAreaRef.current
+    if (!el || !onVisiblePageChange) return
+    let frame = 0
+    const report = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => onVisiblePageChange(Math.min(pageCount, Math.floor(el.scrollTop / (mmToPx(dims.height) * zoom)) + 1))) }
+    el.addEventListener('scroll', report, { passive: true }); report()
+    return () => { el.removeEventListener('scroll', report); cancelAnimationFrame(frame) }
+  }, [dims.height, onVisiblePageChange, pageCount, zoom])
 
   // Fit-to-width: measure the scroll area's own width and scale the page
   // down (never up past 100%) to match, re-checking on container resize —
@@ -619,6 +641,8 @@ export function PaginatedEditor({ content, editable, userId, pageSettings, onCha
               {pageCount} page{pageCount === 1 ? '' : 's'}
             </span>
 
+            <label className="flex items-center gap-1 text-xs text-ink-muted"><input type="checkbox" checked={includeBackgroundInPrint} onChange={(event) => setIncludeBackgroundInPrint(event.target.checked)} />Include paper background</label>
+
             <button type="button" onClick={handlePrint} className={[BUTTON_CLASS, 'ml-auto'].join(' ')}>
               Print / Export PDF
             </button>
@@ -646,6 +670,7 @@ export function PaginatedEditor({ content, editable, userId, pageSettings, onCha
                   key={i}
                   className={[
                     'paginated-page-sheet w-full shrink-0 bg-surface shadow-resting print:shadow-none',
+                    !includeBackgroundInPrint ? 'print-hide-background' : '',
                     i > 0 ? 'border-t border-border' : '',
                   ].join(' ')}
                   style={{
@@ -679,4 +704,4 @@ export function PaginatedEditor({ content, editable, userId, pageSettings, onCha
       </div>
     </div>
   )
-}
+})

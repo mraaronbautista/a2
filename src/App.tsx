@@ -9,6 +9,7 @@ import { NoteDetail } from './routes/NoteDetail'
 import { ReadingDetail } from './routes/ReadingDetail'
 import { Budget } from './routes/Budget'
 import { Us } from './routes/Us'
+import { NotebookDetail } from './routes/NotebookDetail'
 
 function App() {
   const { session, loading } = useAuth()
@@ -34,6 +35,7 @@ function App() {
         <Route path="/notes" element={<Notes />} />
         <Route path="/notes/:noteId" element={<NoteDetail />} />
         <Route path="/readings/:readingId" element={<ReadingDetail />} />
+        <Route path="/notebooks/:notebookId" element={<NotebookDetail />} />
         <Route path="/budget" element={<Budget />} />
         <Route path="/us" element={<Us />} />
         <Route path="*" element={<Navigate to="/" replace />} />

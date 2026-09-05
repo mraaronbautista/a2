@@ -448,6 +448,7 @@ export type Database = {
       }
       notes: {
         Row: {
+          archived_at: string | null
           case_brief_dissent: string | null
           case_brief_facts: string | null
           case_brief_holding: string | null
@@ -461,6 +462,7 @@ export type Database = {
           last_edited_by: string | null
           owner_id: string
           page_settings: Json | null
+          search_text: string
           space: string
           tags: string[]
           title: string
@@ -469,6 +471,7 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          archived_at?: string | null
           case_brief_dissent?: string | null
           case_brief_facts?: string | null
           case_brief_holding?: string | null
@@ -482,6 +485,7 @@ export type Database = {
           last_edited_by?: string | null
           owner_id: string
           page_settings?: Json | null
+          search_text?: string
           space?: string
           tags?: string[]
           title: string
@@ -490,6 +494,7 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          archived_at?: string | null
           case_brief_dissent?: string | null
           case_brief_facts?: string | null
           case_brief_holding?: string | null
@@ -503,6 +508,7 @@ export type Database = {
           last_edited_by?: string | null
           owner_id?: string
           page_settings?: Json | null
+          search_text?: string
           space?: string
           tags?: string[]
           title?: string
@@ -622,8 +628,46 @@ export type Database = {
         }
         Relationships: []
       }
+      library_entries: {
+        Row: { created_at: string; id: string; note_id: string | null; order_index: number; reading_item_id: string | null; section_id: string }
+        Insert: { created_at?: string; id?: string; note_id?: string | null; order_index?: number; reading_item_id?: string | null; section_id: string }
+        Update: { created_at?: string; id?: string; note_id?: string | null; order_index?: number; reading_item_id?: string | null; section_id?: string }
+        Relationships: [
+          { foreignKeyName: "library_entries_note_id_fkey"; columns: ["note_id"]; isOneToOne: false; referencedRelation: "notes"; referencedColumns: ["id"] },
+          { foreignKeyName: "library_entries_reading_item_id_fkey"; columns: ["reading_item_id"]; isOneToOne: false; referencedRelation: "reading_items"; referencedColumns: ["id"] },
+          { foreignKeyName: "library_entries_section_id_fkey"; columns: ["section_id"]; isOneToOne: false; referencedRelation: "notebook_sections"; referencedColumns: ["id"] },
+        ]
+      }
+      note_user_state: {
+        Row: { is_favorite: boolean; last_opened_at: string | null; note_id: string; updated_at: string; user_id: string }
+        Insert: { is_favorite?: boolean; last_opened_at?: string | null; note_id: string; updated_at?: string; user_id: string }
+        Update: { is_favorite?: boolean; last_opened_at?: string | null; note_id?: string; updated_at?: string; user_id?: string }
+        Relationships: [{ foreignKeyName: "note_user_state_note_id_fkey"; columns: ["note_id"]; isOneToOne: false; referencedRelation: "notes"; referencedColumns: ["id"] }]
+      }
+      notebook_sections: {
+        Row: { color: string | null; created_at: string; id: string; name: string; notebook_id: string; order_index: number; updated_at: string }
+        Insert: { color?: string | null; created_at?: string; id?: string; name: string; notebook_id: string; order_index?: number; updated_at?: string }
+        Update: { color?: string | null; created_at?: string; id?: string; name?: string; notebook_id?: string; order_index?: number; updated_at?: string }
+        Relationships: [{ foreignKeyName: "notebook_sections_notebook_id_fkey"; columns: ["notebook_id"]; isOneToOne: false; referencedRelation: "notebooks"; referencedColumns: ["id"] }]
+      }
+      notebook_user_state: {
+        Row: { is_favorite: boolean; last_opened_at: string | null; notebook_id: string; updated_at: string; user_id: string }
+        Insert: { is_favorite?: boolean; last_opened_at?: string | null; notebook_id: string; updated_at?: string; user_id: string }
+        Update: { is_favorite?: boolean; last_opened_at?: string | null; notebook_id?: string; updated_at?: string; user_id?: string }
+        Relationships: [{ foreignKeyName: "notebook_user_state_notebook_id_fkey"; columns: ["notebook_id"]; isOneToOne: false; referencedRelation: "notebooks"; referencedColumns: ["id"] }]
+      }
+      notebooks: {
+        Row: { archived_at: string | null; cover: Json; course_id: string | null; created_at: string; description: string; household_id: string; id: string; name: string; order_index: number; owner_id: string; space: string; updated_at: string; visibility: string }
+        Insert: { archived_at?: string | null; cover?: Json; course_id?: string | null; created_at?: string; description?: string; household_id: string; id?: string; name: string; order_index?: number; owner_id: string; space: string; updated_at?: string; visibility?: string }
+        Update: { archived_at?: string | null; cover?: Json; course_id?: string | null; created_at?: string; description?: string; household_id?: string; id?: string; name?: string; order_index?: number; owner_id?: string; space?: string; updated_at?: string; visibility?: string }
+        Relationships: [
+          { foreignKeyName: "notebooks_course_id_fkey"; columns: ["course_id"]; isOneToOne: false; referencedRelation: "courses"; referencedColumns: ["id"] },
+          { foreignKeyName: "notebooks_household_id_fkey"; columns: ["household_id"]; isOneToOne: false; referencedRelation: "households"; referencedColumns: ["id"] },
+        ]
+      }
       reading_items: {
         Row: {
+          archived_at: string | null
           course_id: string
           created_at: string
           due_date: string | null
@@ -638,6 +682,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          archived_at?: string | null
           course_id: string
           created_at?: string
           due_date?: string | null
@@ -652,6 +697,7 @@ export type Database = {
           title: string
         }
         Update: {
+          archived_at?: string | null
           course_id?: string
           created_at?: string
           due_date?: string | null
@@ -817,6 +863,8 @@ export type Database = {
       }
       reading_progress: {
         Row: {
+          is_favorite: boolean
+          last_opened_at: string | null
           page_count: number | null
           page_number: number
           reading_item_id: string
@@ -827,6 +875,8 @@ export type Database = {
           zoom_value: number
         }
         Insert: {
+          is_favorite?: boolean
+          last_opened_at?: string | null
           page_count?: number | null
           page_number?: number
           reading_item_id: string
@@ -837,6 +887,8 @@ export type Database = {
           zoom_value?: number
         }
         Update: {
+          is_favorite?: boolean
+          last_opened_at?: string | null
           page_count?: number | null
           page_number?: number
           reading_item_id?: string
@@ -1093,8 +1145,13 @@ export type Database = {
         }
       }
       can_access_note: { Args: { p_note_id: string }; Returns: boolean }
+      can_access_notebook: { Args: { p_notebook_id: string }; Returns: boolean }
       can_access_reading: { Args: { p_reading_item_id: string }; Returns: boolean }
+      can_access_section: { Args: { p_section_id: string }; Returns: boolean }
       can_manage_course: { Args: { p_course_id: string }; Returns: boolean }
+      can_manage_notebook: { Args: { p_notebook_id: string }; Returns: boolean }
+      can_manage_section: { Args: { p_section_id: string }; Returns: boolean }
+      create_notebook_with_section: { Args: { p_course_id: string | null; p_cover: Json; p_description: string; p_household_id: string; p_name: string; p_space: string; p_visibility: string }; Returns: string }
       create_reading_linked_note: {
         Args: {
           p_annotation_id: string | null
@@ -1107,10 +1164,20 @@ export type Database = {
         }
         Returns: string
       }
+      delete_notebook_unfile: { Args: { target_notebook_id: string }; Returns: undefined }
+      delete_section_unfile: { Args: { target_section_id: string }; Returns: undefined }
+      file_note: { Args: { target_note_id: string; target_section_id: string }; Returns: string }
+      file_reading: { Args: { target_reading_id: string; target_section_id: string }; Returns: string }
       is_household_member: {
         Args: { target_household_id: string }
         Returns: boolean
       }
+      midpoint_order_index: { Args: { p_after: number | null; p_before: number | null }; Returns: number | null }
+      move_library_entry: { Args: { target_entry_id: string; target_section_id: string }; Returns: undefined }
+      remove_library_entry: { Args: { target_entry_id: string }; Returns: undefined }
+      reorder_library_entry: { Args: { after_id: string | null; before_id: string | null; target_entry_id: string }; Returns: undefined }
+      reorder_notebook: { Args: { after_id: string | null; before_id: string | null; target_notebook_id: string }; Returns: undefined }
+      reorder_section: { Args: { after_id: string | null; before_id: string | null; target_section_id: string }; Returns: undefined }
       same_household: { Args: { target_user_id: string }; Returns: boolean }
     }
     Enums: {

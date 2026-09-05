@@ -16,7 +16,7 @@ export function useReadingProgress(readingId: string, userId: string, pageCount:
     const write = () => void supabase.from('reading_progress').upsert({
       reading_item_id: readingId, user_id: userId, page_number: next.page ?? page, page_count: pageCount,
       zoom_mode: next.zoomMode ?? zoomMode, zoom_value: next.zoomValue ?? zoomValue,
-      view_mode: next.viewMode ?? viewMode, updated_at: new Date().toISOString(),
+      view_mode: next.viewMode ?? viewMode, last_opened_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     })
     if (immediate) write()
     else timer.current = setTimeout(write, 750)

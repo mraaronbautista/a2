@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { DEFAULT_PAGE_SETTINGS, type Orientation, type PaperSize, type PaperStyle } from '../../lib/pageSizes'
+import { PAPER_TEMPLATES } from '../../lib/paperTemplates'
 
 interface Course {
   id: string
@@ -128,7 +129,7 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
               ))}
             </div>
             <div className="flex flex-wrap gap-1.5 text-xs">
-              {(['blank', 'ruled', 'grid', 'dotted'] as const).map((p) => (
+              {PAPER_TEMPLATES.map(({ value: p, label }) => (
                 <button
                   key={p}
                   type="button"
@@ -138,7 +139,7 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
                     paperStyle === p ? 'bg-accent-bg text-accent' : 'bg-surface text-ink-muted',
                   ].join(' ')}
                 >
-                  {p}
+                  {label}
                 </button>
               ))}
             </div>

@@ -39,6 +39,8 @@ export function ReadingDetail() {
   const progress = useReadingProgress(readingId, user?.id ?? '', pdfState.pageCount)
   const state = useReadingAnnotations(readingId, user?.id ?? '')
 
+  useEffect(() => { if (readingId && user) void supabase.from('reading_progress').upsert({ reading_item_id: readingId, user_id: user.id, last_opened_at: new Date().toISOString(), updated_at: new Date().toISOString() }) }, [readingId, user])
+
   useEffect(() => { if (!readingId) return; const channel = supabase.channel(`open-reading-${readingId}`).on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reading_items', filter: `id=eq.${readingId}` }, () => setMetadataError('This reading was deleted.')).subscribe(); return () => { void supabase.removeChannel(channel) } }, [readingId])
 
   useEffect(() => {

@@ -1,17 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
-import { useProfiles } from '../hooks/useProfiles'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
-import { NoteCard } from '../components/notes/NoteCard'
 import { AddNoteModal } from '../components/notes/AddNoteModal'
 import { CourseCard } from '../components/courses/CourseCard'
 import { AddCourseModal } from '../components/courses/AddCourseModal'
 import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon } from '../components/layout/icons'
+import { LibraryWorkspace } from '../components/library/LibraryWorkspace'
 
 const REALTIME_TABLES = ['notes', 'courses', 'reading_items']
 const SUBVIEW_ORDER = ['notes', 'courses'] as const
@@ -25,21 +24,9 @@ interface Course {
   is_shared: boolean
 }
 
-interface Note {
-  id: string
-  title: string
-  type: 'case_brief' | 'freeform'
-  visibility: 'private' | 'shared'
-  owner_id: string
-  course_id: string | null
-  updated_at: string
-  courses: { name: string; color: string | null } | null
-}
-
 export function Notes() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
-  const profiles = useProfiles()
   const { openSettings } = useSettings()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -52,11 +39,8 @@ export function Notes() {
   const initialView = searchParams.get('view') === 'courses' ? 'courses' : 'notes'
   const [subView, setSubView] = useState<'notes' | 'courses'>(initialView)
 
-  const [notes, setNotes] = useState<Note[]>([])
   const [courses, setCourses] = useState<Course[]>([])
   const [readingCounts, setReadingCounts] = useState<Record<string, number>>({})
-  const [search, setSearch] = useState('')
-  const [courseFilter, setCourseFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [addNoteOpen, setAddNoteOpen] = useState(false)
   const [addCourseOpen, setAddCourseOpen] = useState(false)
@@ -65,17 +49,11 @@ export function Notes() {
     if (!householdId) return
     setLoading(true)
 
-    const [notesRes, coursesRes, readingsRes] = await Promise.all([
-      supabase
-        .from('notes')
-        .select('id, title, type, visibility, owner_id, course_id, updated_at, courses(name, color)')
-        .eq('space', 'law')
-        .order('updated_at', { ascending: false }),
+    const [coursesRes, readingsRes] = await Promise.all([
       supabase.from('courses').select('id, name, professor, color, is_shared').order('created_at', { ascending: true }),
       supabase.from('reading_items').select('course_id'),
     ])
 
-    setNotes((notesRes.data ?? []) as unknown as Note[])
     setCourses((coursesRes.data ?? []) as Course[])
 
     const counts: Record<string, number> = {}
@@ -127,14 +105,6 @@ export function Notes() {
     householdId && user ? (subView === 'notes' ? () => setAddNoteOpen(true) : () => setAddCourseOpen(true)) : null,
   )
 
-  const filtered = useMemo(() => {
-    return notes.filter((n) => {
-      if (courseFilter && n.course_id !== courseFilter) return false
-      if (search && !n.title.toLowerCase().includes(search.toLowerCase())) return false
-      return true
-    })
-  }, [notes, search, courseFilter])
-
   if (householdLoading || loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
   }
@@ -168,53 +138,7 @@ export function Notes() {
       </div>
 
       <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd} className="min-h-[60dvh] space-y-4">
-        {subView === 'notes' && (
-          <>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Search notes…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-              />
-              {courses.length > 0 && (
-                <select
-                  value={courseFilter}
-                  onChange={(e) => setCourseFilter(e.target.value)}
-                  className="w-32 shrink-0 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                >
-                  <option value="">All courses</option>
-                  {courses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {filtered.length === 0 ? (
-              <p className="text-sm text-ink-muted">{notes.length === 0 ? 'No notes yet.' : 'No notes match.'}</p>
-            ) : (
-              <div className="space-y-2">
-                {filtered.map((n) => (
-                  <NoteCard
-                    key={n.id}
-                    id={n.id}
-                    title={n.title}
-                    type={n.type}
-                    courseName={n.courses?.name ?? null}
-                    courseColor={n.courses?.color ?? null}
-                    visibility={n.visibility}
-                    updatedAt={n.updated_at}
-                    ownerLabel={user && n.owner_id !== user.id ? profiles[n.owner_id] : undefined}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        {subView === 'notes' && householdId && user && <LibraryWorkspace householdId={householdId} userId={user.id} space="law" courses={courses} onNewNote={() => setAddNoteOpen(true)} />}
 
         {subView === 'courses' &&
           (courses.length === 0 ? (

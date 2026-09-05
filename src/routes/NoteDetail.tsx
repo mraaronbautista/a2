@@ -7,11 +7,14 @@ import { useAuth } from '../hooks/useAuth'
 import { useProfiles } from '../hooks/useProfiles'
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh'
 import { RichTextEditor } from '../components/notes/RichTextEditor'
-import { PaginatedEditor } from '../components/notes/PaginatedEditor'
+import { PaginatedEditor, type PaginatedEditorHandle } from '../components/notes/PaginatedEditor'
+import { PageThumbnailRail, type PagePreview } from '../components/notes/pagination/PageThumbnailRail'
 import { CaseBriefFields, type CaseBrief } from '../components/notes/CaseBriefFields'
 import { CheckIcon, SpinnerIcon } from '../components/layout/icons'
 import { DEFAULT_PAGE_SETTINGS, type PageSettings } from '../lib/pageSizes'
 import { useFocusLayout } from '../hooks/useFocusLayout'
+import { PAPER_TEMPLATES } from '../lib/paperTemplates'
+import { notePlainText } from '../lib/notePlainText'
 
 // How long to wait after the last keystroke before autosaving.
 const AUTOSAVE_DELAY_MS = 900
@@ -72,6 +75,9 @@ export function NoteDetail() {
   const [pageSettings, setPageSettings] = useState<PageSettings>(DEFAULT_PAGE_SETTINGS)
   const [caseBrief, setCaseBrief] = useState<CaseBrief>({ facts: '', issue: '', holding: '', reasoning: '', dissent: '' })
   const editVersionRef = useRef(0)
+  const paginatedEditorRef = useRef<PaginatedEditorHandle>(null)
+  const [pagePreviews, setPagePreviews] = useState<PagePreview[]>([])
+  const [visiblePage, setVisiblePage] = useState(1)
 
   // Only the very first fetch of a given note should show the full-page
   // "Loading…" state (which unmounts the editor) — a background refresh
@@ -124,6 +130,8 @@ export function NoteDetail() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => { if (noteId && user) void supabase.from('note_user_state').upsert({ note_id: noteId, user_id: user.id, last_opened_at: new Date().toISOString(), updated_at: new Date().toISOString() }) }, [noteId, user])
 
   useEffect(() => {
     setFocused(note?.type === 'paginated')
@@ -179,6 +187,7 @@ export function NoteDetail() {
         course_id: courseId || null,
         visibility,
         tags,
+        search_text: note.type === 'case_brief' ? [caseBrief.facts, caseBrief.issue, caseBrief.holding, caseBrief.reasoning, caseBrief.dissent].join('\n').trim().slice(0, 200_000) : notePlainText(content),
         content: note.type === 'freeform' || note.type === 'paginated' ? content : null,
         page_settings: note.type === 'paginated' ? pageSettings : null,
         case_brief_facts: note.type === 'case_brief' ? caseBrief.facts : null,
@@ -308,8 +317,8 @@ export function NoteDetail() {
         <fieldset>
           <legend className="mb-1 text-xs font-medium text-ink-muted">Paper style</legend>
           <div className="grid grid-cols-2 gap-1">
-            {(['blank', 'ruled', 'grid', 'dotted'] as const).map((paperStyle) => (
-              <button key={paperStyle} type="button" aria-pressed={(pageSettings.paperStyle ?? 'blank') === paperStyle} onClick={() => markDirty(setPageSettings)({ ...pageSettings, paperStyle })} className={['min-h-11 rounded-lg px-3 capitalize', (pageSettings.paperStyle ?? 'blank') === paperStyle ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}>{paperStyle}</button>
+            {PAPER_TEMPLATES.map(({ value: paperStyle, label }) => (
+              <button key={paperStyle} type="button" aria-pressed={(pageSettings.paperStyle ?? 'blank') === paperStyle} onClick={() => markDirty(setPageSettings)({ ...pageSettings, paperStyle })} className={['min-h-11 rounded-lg px-3', (pageSettings.paperStyle ?? 'blank') === paperStyle ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}>{label}</button>
             ))}
           </div>
         </fieldset>
@@ -361,7 +370,7 @@ export function NoteDetail() {
           )}
         </header>
         {saveError && <div role="alert" className="shrink-0 border-b border-border bg-accent-bg px-3 py-2 text-xs text-accent">Couldn’t save this note. Your changes are still here. Retry before leaving.</div>}
-        {user && <PaginatedEditor content={content} editable={canManage} userId={user.id} pageSettings={pageSettings} onChange={markDirty(setContent)} />}
+        {user && <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 lg:flex-row lg:p-3"><PageThumbnailRail pages={pagePreviews} currentPage={visiblePage} onSelect={(page) => paginatedEditorRef.current?.scrollToPage(page)} /><PaginatedEditor ref={paginatedEditorRef} content={content} editable={canManage} userId={user.id} pageSettings={pageSettings} onChange={markDirty(setContent)} onPagesChange={setPagePreviews} onVisiblePageChange={setVisiblePage} /></div>}
       </section>
     )
   }

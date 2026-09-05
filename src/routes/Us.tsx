@@ -10,8 +10,8 @@ import { ThoughtComposer } from '../components/us/ThoughtComposer'
 import { ThoughtCard } from '../components/us/ThoughtCard'
 import { GoalModal, type Goal } from '../components/us/GoalModal'
 import { TaskItem } from '../components/tasks/TaskItem'
-import { NoteCard } from '../components/notes/NoteCard'
 import { AddNoteModal } from '../components/notes/AddNoteModal'
+import { LibraryWorkspace } from '../components/library/LibraryWorkspace'
 import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon, ChevronDownIcon } from '../components/layout/icons'
@@ -20,15 +20,6 @@ const REALTIME_TABLES = ['thoughts', 'goals', 'notes']
 const SUBVIEW_ORDER = ['goals', 'thoughts', 'notes'] as const
 type SubView = (typeof SUBVIEW_ORDER)[number]
 const SWIPE_MIN_DISTANCE = 60
-
-interface PersonalNote {
-  id: string
-  title: string
-  type: 'case_brief' | 'freeform'
-  visibility: 'private' | 'shared'
-  owner_id: string
-  updated_at: string
-}
 
 interface ThoughtComment {
   id: string
@@ -67,7 +58,6 @@ export function Us() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [goalModal, setGoalModal] = useState<Goal | 'new' | null>(null)
   const [completedGoalsOpen, setCompletedGoalsOpen] = useState(false)
-  const [notes, setNotes] = useState<PersonalNote[]>([])
   const [addNoteOpen, setAddNoteOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const thoughtComposerRef = useRef<HTMLTextAreaElement>(null)
@@ -76,19 +66,13 @@ export function Us() {
     if (!householdId || !user) return
     setLoading(true)
 
-    const [thoughtsRes, goalsRes, notesRes] = await Promise.all([
+    const [thoughtsRes, goalsRes] = await Promise.all([
       supabase.from('thoughts').select('id, owner_id, body, visibility, comments, archived, created_at').order('created_at', { ascending: false }),
       supabase.from('goals').select('id, owner_id, title, target_date, visibility, completed_at').order('created_at', { ascending: false }),
-      supabase
-        .from('notes')
-        .select('id, title, type, visibility, owner_id, updated_at')
-        .eq('space', 'personal')
-        .order('updated_at', { ascending: false }),
     ])
 
     setThoughts((thoughtsRes.data ?? []) as unknown as Thought[])
     setGoals((goalsRes.data ?? []) as Goal[])
-    setNotes((notesRes.data ?? []) as PersonalNote[])
     setLoading(false)
   }, [householdId, user])
 
@@ -369,27 +353,7 @@ export function Us() {
           </div>
         )}
 
-        {subView === 'notes' && user && (
-          <div className="space-y-2">
-            {notes.length === 0 ? (
-              <p className="text-sm text-ink-muted">No personal notes yet — trip plans, shared lists, anything that isn't law school.</p>
-            ) : (
-              notes.map((n) => (
-                <NoteCard
-                  key={n.id}
-                  id={n.id}
-                  title={n.title}
-                  type={n.type}
-                  courseName={null}
-                  courseColor={null}
-                  visibility={n.visibility}
-                  updatedAt={n.updated_at}
-                  ownerLabel={n.owner_id !== user.id ? profiles[n.owner_id] : undefined}
-                />
-              ))
-            )}
-          </div>
-        )}
+        {subView === 'notes' && user && householdId && <LibraryWorkspace householdId={householdId} userId={user.id} space="personal" onNewNote={() => setAddNoteOpen(true)} />}
       </div>
 
       {addNoteOpen && householdId && user && (

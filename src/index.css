@@ -278,6 +278,9 @@ textarea {
     box-shadow: none !important;
     break-after: page;
   }
+  .paginated-page-sheet.print-hide-background {
+    background-image: none !important;
+  }
   .paginated-scroll-area {
     overflow: visible !important;
   }

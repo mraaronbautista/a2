@@ -1,6 +1,6 @@
 export type PaperSize = 'a4' | 'letter'
 export type Orientation = 'portrait' | 'landscape'
-export type PaperStyle = 'blank' | 'ruled' | 'grid' | 'dotted'
+export type PaperStyle = 'blank' | 'ruled' | 'wide-ruled' | 'narrow-ruled' | 'grid' | 'small-grid' | 'dotted' | 'legal'
 
 export type PageSettings = {
   paper: PaperSize
@@ -17,17 +17,31 @@ export const DEFAULT_PAGE_SETTINGS: PageSettings = { paper: 'a4', orientation: '
 export const PAPER_STYLE_BACKGROUND: Record<PaperStyle, string> = {
   blank: 'none',
   ruled: 'repeating-linear-gradient(to bottom, transparent, transparent 27px, var(--color-border) 27px, var(--color-border) 28px)',
+  'wide-ruled': 'repeating-linear-gradient(to bottom, transparent, transparent 31px, var(--color-border) 31px, var(--color-border) 32px)',
+  'narrow-ruled': 'repeating-linear-gradient(to bottom, transparent, transparent 19px, var(--color-border) 19px, var(--color-border) 20px)',
   grid: [
     'repeating-linear-gradient(to bottom, transparent, transparent 23px, var(--color-border) 23px, var(--color-border) 24px)',
     'repeating-linear-gradient(to right, transparent, transparent 23px, var(--color-border) 23px, var(--color-border) 24px)',
   ].join(', '),
+  'small-grid': [
+    'repeating-linear-gradient(to bottom, transparent, transparent 11px, var(--color-border) 11px, var(--color-border) 12px)',
+    'repeating-linear-gradient(to right, transparent, transparent 11px, var(--color-border) 11px, var(--color-border) 12px)',
+  ].join(', '),
   dotted: 'radial-gradient(var(--color-border) 1px, transparent 1.5px)',
+  legal: [
+    'linear-gradient(to right, transparent 31px, rgba(217,122,77,.6) 31px, rgba(217,122,77,.6) 32px, transparent 32px)',
+    'repeating-linear-gradient(to bottom, transparent, transparent 27px, var(--color-border) 27px, var(--color-border) 28px)',
+  ].join(', '),
 }
 export const PAPER_STYLE_BACKGROUND_SIZE: Record<PaperStyle, string> = {
   blank: 'auto',
   ruled: 'auto',
+  'wide-ruled': 'auto',
+  'narrow-ruled': 'auto',
   grid: 'auto',
+  'small-grid': 'auto',
   dotted: '20px 20px',
+  legal: 'auto',
 }
 
 // Base (portrait) dimensions in CSS mm — using real physical units rather
