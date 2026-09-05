@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 const PREP_CYCLE = ['unprepped', 'prepped', 'cold_called'] as const
 type PrepStatus = (typeof PREP_CYCLE)[number]
 
@@ -18,8 +20,10 @@ function nextPrepStatus(status: PrepStatus): PrepStatus {
 }
 
 interface ReadingItemRowProps {
+  readingId: string
   title: string
   sourceLink: string | null
+  hasPdf: boolean
   dueDate: string | null
   completed: boolean
   prepStatus: PrepStatus
@@ -35,8 +39,10 @@ interface ReadingItemRowProps {
 }
 
 export function ReadingItemRow({
+  readingId,
   title,
   sourceLink,
+  hasPdf,
   dueDate,
   completed,
   prepStatus,
@@ -55,7 +61,14 @@ export function ReadingItemRow({
       <input type="checkbox" checked={completed} onChange={onToggleRead} className="h-4 w-4 shrink-0 accent-accent" />
 
       <div className="min-w-0 flex-1">
-        {sourceLink ? (
+        {hasPdf ? (
+          <Link
+            to={`/readings/${readingId}`}
+            className={['block truncate text-sm font-medium hover:text-accent', completed ? 'text-ink-muted' : 'text-ink'].join(' ')}
+          >
+            {title}
+          </Link>
+        ) : sourceLink ? (
           <a
             href={sourceLink}
             target="_blank"
@@ -67,7 +80,10 @@ export function ReadingItemRow({
         ) : (
           <p className={['truncate text-sm', completed ? 'text-ink-muted line-through' : 'text-ink'].join(' ')}>{title}</p>
         )}
-        {dueDate && <p className="text-xs text-ink-muted">{new Date(dueDate).toLocaleDateString()}</p>}
+        <div className="flex items-center gap-2 text-xs text-ink-muted">
+          {hasPdf && <span>PDF · Read in A2</span>}
+          {dueDate && <span>{new Date(dueDate).toLocaleDateString()}</span>}
+        </div>
       </div>
 
       <button

@@ -460,6 +460,7 @@ export type Database = {
           id: string
           last_edited_by: string | null
           owner_id: string
+          page_settings: Json | null
           space: string
           tags: string[]
           title: string
@@ -480,6 +481,7 @@ export type Database = {
           id?: string
           last_edited_by?: string | null
           owner_id: string
+          page_settings?: Json | null
           space?: string
           tags?: string[]
           title: string
@@ -500,6 +502,7 @@ export type Database = {
           id?: string
           last_edited_by?: string | null
           owner_id?: string
+          page_settings?: Json | null
           space?: string
           tags?: string[]
           title?: string
@@ -625,9 +628,13 @@ export type Database = {
           created_at: string
           due_date: string | null
           id: string
+          mime_type: string | null
           order_index: number
+          original_name: string | null
           recurrence_rule: string | null
+          size_bytes: number | null
           source_link: string | null
+          storage_path: string | null
           title: string
         }
         Insert: {
@@ -635,9 +642,13 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          mime_type?: string | null
           order_index?: number
+          original_name?: string | null
           recurrence_rule?: string | null
+          size_bytes?: number | null
           source_link?: string | null
+          storage_path?: string | null
           title: string
         }
         Update: {
@@ -645,9 +656,13 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          mime_type?: string | null
           order_index?: number
+          original_name?: string | null
           recurrence_rule?: string | null
+          size_bytes?: number | null
           source_link?: string | null
+          storage_path?: string | null
           title?: string
         }
         Relationships: [
@@ -656,6 +671,187 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_annotations: {
+        Row: {
+          anchor: Json | null
+          body: string
+          color: string
+          created_at: string
+          id: string
+          kind: string
+          page_number: number
+          quoted_text: string | null
+          reading_item_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anchor?: Json | null
+          body?: string
+          color?: string
+          created_at?: string
+          id?: string
+          kind: string
+          page_number: number
+          quoted_text?: string | null
+          reading_item_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anchor?: Json | null
+          body?: string
+          color?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          page_number?: number
+          quoted_text?: string | null
+          reading_item_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_annotations_reading_item_id_fkey"
+            columns: ["reading_item_id"]
+            isOneToOne: false
+            referencedRelation: "reading_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          page_number: number
+          reading_item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string
+          page_number: number
+          reading_item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          page_number?: number
+          reading_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_bookmarks_reading_item_id_fkey"
+            columns: ["reading_item_id"]
+            isOneToOne: false
+            referencedRelation: "reading_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_note_links: {
+        Row: {
+          annotation_id: string | null
+          created_at: string
+          created_by: string
+          id: string
+          note_id: string
+          page_number: number
+          quoted_text: string | null
+          reading_item_id: string
+        }
+        Insert: {
+          annotation_id?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          note_id: string
+          page_number: number
+          quoted_text?: string | null
+          reading_item_id: string
+        }
+        Update: {
+          annotation_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          note_id?: string
+          page_number?: number
+          quoted_text?: string | null
+          reading_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_note_links_annotation_id_fkey"
+            columns: ["annotation_id"]
+            isOneToOne: false
+            referencedRelation: "reading_annotations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_note_links_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_note_links_reading_item_id_fkey"
+            columns: ["reading_item_id"]
+            isOneToOne: false
+            referencedRelation: "reading_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_progress: {
+        Row: {
+          page_count: number | null
+          page_number: number
+          reading_item_id: string
+          updated_at: string
+          user_id: string
+          view_mode: string
+          zoom_mode: string
+          zoom_value: number
+        }
+        Insert: {
+          page_count?: number | null
+          page_number?: number
+          reading_item_id: string
+          updated_at?: string
+          user_id: string
+          view_mode?: string
+          zoom_mode?: string
+          zoom_value?: number
+        }
+        Update: {
+          page_count?: number | null
+          page_number?: number
+          reading_item_id?: string
+          updated_at?: string
+          user_id?: string
+          view_mode?: string
+          zoom_mode?: string
+          zoom_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_progress_reading_item_id_fkey"
+            columns: ["reading_item_id"]
+            isOneToOne: false
+            referencedRelation: "reading_items"
             referencedColumns: ["id"]
           },
         ]
@@ -895,6 +1091,21 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      can_access_note: { Args: { p_note_id: string }; Returns: boolean }
+      can_access_reading: { Args: { p_reading_item_id: string }; Returns: boolean }
+      can_manage_course: { Args: { p_course_id: string }; Returns: boolean }
+      create_reading_linked_note: {
+        Args: {
+          p_annotation_id: string | null
+          p_content: Json
+          p_page_number: number
+          p_quoted_text: string | null
+          p_reading_item_id: string
+          p_title: string
+          p_visibility: string
+        }
+        Returns: string
       }
       is_household_member: {
         Args: { target_household_id: string }

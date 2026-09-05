@@ -6,6 +6,7 @@ import { Today } from './routes/Today'
 import { CourseDetail } from './routes/CourseDetail'
 import { Notes } from './routes/Notes'
 import { NoteDetail } from './routes/NoteDetail'
+import { ReadingDetail } from './routes/ReadingDetail'
 import { Budget } from './routes/Budget'
 import { Us } from './routes/Us'
 
@@ -32,6 +33,7 @@ function App() {
         <Route path="/courses/:courseId" element={<CourseDetail />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/notes/:noteId" element={<NoteDetail />} />
+        <Route path="/readings/:readingId" element={<ReadingDetail />} />
         <Route path="/budget" element={<Budget />} />
         <Route path="/us" element={<Us />} />
         <Route path="*" element={<Navigate to="/" replace />} />

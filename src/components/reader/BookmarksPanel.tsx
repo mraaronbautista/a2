@@ -1,0 +1,5 @@
+import type { ReadingBookmark } from '../../lib/readingTypes'
+export function BookmarksPanel({ bookmarks, onOpenPage, onLabel, onDelete }: { bookmarks: ReadingBookmark[]; onOpenPage: (page: number) => void; onLabel: (id: string, label: string) => void; onDelete: (page: number) => void }) {
+  if (!bookmarks.length) return <p className="p-4 text-sm text-ink-muted">No bookmarks yet.</p>
+  return <div className="space-y-2 p-3">{bookmarks.map((item) => <div key={item.id} className="rounded-lg border border-border bg-bg p-2"><button type="button" onClick={() => onOpenPage(item.page_number)} className="text-sm font-medium text-accent">Page {item.page_number}</button><input defaultValue={item.label} onBlur={(event) => onLabel(item.id, event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} placeholder="Add label" maxLength={120} className="mt-1 h-9 w-full rounded border border-border bg-surface px-2 text-xs text-ink" /><button type="button" onClick={() => onDelete(item.page_number)} className="mt-1 text-xs text-ink-muted hover:text-accent">Remove</button></div>)}</div>
+}

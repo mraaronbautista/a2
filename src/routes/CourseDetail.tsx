@@ -26,6 +26,10 @@ interface ReadingItem {
   id: string
   title: string
   source_link: string | null
+  storage_path: string | null
+  original_name: string | null
+  mime_type: string | null
+  size_bytes: number | null
   due_date: string | null
   order_index: number
 }
@@ -53,7 +57,11 @@ export function CourseDetail() {
 
     const [courseRes, readingsRes, syllabiRes] = await Promise.all([
       supabase.from('courses').select('id, name, professor, color, owner_id, is_shared').eq('id', courseId).single(),
-      supabase.from('reading_items').select('id, title, source_link, due_date, order_index').eq('course_id', courseId).order('order_index'),
+      supabase
+        .from('reading_items')
+        .select('id, title, source_link, storage_path, original_name, mime_type, size_bytes, due_date, order_index')
+        .eq('course_id', courseId)
+        .order('order_index'),
       supabase
         .from('course_syllabi')
         .select('id, created_by, original_name, storage_path, mime_type, size_bytes, extraction_status, extraction_method, extracted_text, edited_text, notes, updated_at')
@@ -128,7 +136,19 @@ export function CourseDetail() {
 
   async function deleteReading(readingId: string) {
     if (!window.confirm('Delete this reading?')) return
-    await supabase.from('reading_items').delete().eq('id', readingId)
+    const reading = readings.find((item) => item.id === readingId)
+    if (reading?.storage_path) {
+      const removed = await supabase.storage.from('reading-files').remove([reading.storage_path])
+      if (removed.error) {
+        window.alert(`The PDF could not be removed, so the reading was kept. ${removed.error.message}`)
+        return
+      }
+    }
+    const deleted = await supabase.from('reading_items').delete().eq('id', readingId)
+    if (deleted.error) {
+      window.alert(`The reading could not be deleted. ${deleted.error.message}`)
+      return
+    }
     load()
   }
 
@@ -198,7 +218,9 @@ export function CourseDetail() {
       <div>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink-muted">Readings</h2>
-          {canManage && <AddReadingButton courseId={course.id} nextOrderIndex={nextOrderIndex} onAdded={load} />}
+          {canManage && user && (
+            <AddReadingButton courseId={course.id} userId={user.id} nextOrderIndex={nextOrderIndex} onAdded={load} />
+          )}
         </div>
 
         {readings.length === 0 ? (
@@ -209,7 +231,9 @@ export function CourseDetail() {
               <ReadingItemRow
                 key={r.id}
                 title={r.title}
+                readingId={r.id}
                 sourceLink={r.source_link}
+                hasPdf={!!r.storage_path && r.mime_type === 'application/pdf'}
                 dueDate={r.due_date}
                 completed={!!statusByReading[r.id]?.completed_at}
                 prepStatus={statusByReading[r.id]?.prep_status ?? 'unprepped'}

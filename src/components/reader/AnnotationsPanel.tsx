@@ -1,0 +1,5 @@
+import type { ReadingAnnotation } from '../../lib/readingTypes'
+export function AnnotationsPanel({ annotations, onOpenPage, onDelete }: { annotations: ReadingAnnotation[]; onOpenPage: (page: number) => void; onDelete: (annotation: ReadingAnnotation) => void }) {
+  if (!annotations.length) return <p className="p-4 text-sm text-ink-muted">No highlights or notes yet.</p>
+  return <div className="space-y-2 p-3">{annotations.map((item) => <article key={item.id} className="rounded-lg border border-border bg-bg p-2"><button type="button" onClick={() => onOpenPage(item.page_number)} className="text-xs font-medium text-accent">Page {item.page_number} · {item.kind}</button>{item.quoted_text && <blockquote className="mt-1 line-clamp-3 text-xs italic text-ink-muted">“{item.quoted_text}”</blockquote>}{item.body && <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{item.body}</p>}<button type="button" onClick={() => onDelete(item)} className="mt-2 text-xs text-ink-muted hover:text-accent">Delete</button></article>)}</div>
+}
