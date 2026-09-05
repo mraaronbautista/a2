@@ -11,6 +11,7 @@ import { PaginatedEditor } from '../components/notes/PaginatedEditor'
 import { CaseBriefFields, type CaseBrief } from '../components/notes/CaseBriefFields'
 import { CheckIcon, SpinnerIcon } from '../components/layout/icons'
 import { DEFAULT_PAGE_SETTINGS, type PageSettings } from '../lib/pageSizes'
+import { useFocusLayout } from '../hooks/useFocusLayout'
 
 // How long to wait after the last keystroke before autosaving.
 const AUTOSAVE_DELAY_MS = 900
@@ -54,12 +55,14 @@ export function NoteDetail() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const profiles = useProfiles()
+  const { setFocused } = useFocusLayout()
 
   const [note, setNote] = useState<NoteRow | null>(null)
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const [title, setTitle] = useState('')
   const [courseId, setCourseId] = useState('')
@@ -68,6 +71,7 @@ export function NoteDetail() {
   const [content, setContent] = useState<JSONContent | null>(null)
   const [pageSettings, setPageSettings] = useState<PageSettings>(DEFAULT_PAGE_SETTINGS)
   const [caseBrief, setCaseBrief] = useState<CaseBrief>({ facts: '', issue: '', holding: '', reasoning: '', dissent: '' })
+  const editVersionRef = useRef(0)
 
   // Only the very first fetch of a given note should show the full-page
   // "Loading…" state (which unmounts the editor) — a background refresh
@@ -110,6 +114,8 @@ export function NoteDetail() {
       })
     }
 
+    editVersionRef.current = 0
+    setSaveError('')
     setDirty(false)
     setLoading(false)
     loadedNoteIdRef.current = noteId
@@ -118,6 +124,11 @@ export function NoteDetail() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    setFocused(note?.type === 'paginated')
+    return () => setFocused(false)
+  }, [note?.type, noteId, setFocused])
 
   // Skip the live refresh while there are unsaved local edits — pulling the
   // partner's version mid-edit would silently overwrite what's being typed.
@@ -136,13 +147,17 @@ export function NoteDetail() {
   function markDirty<T>(setter: (v: T) => void) {
     return (v: T) => {
       setter(v)
+      editVersionRef.current += 1
       setDirty(true)
+      setSaveError('')
     }
   }
 
   const handleSave = useCallback(async () => {
-    if (!note || !user) return
+    if (!note || !user) return false
     setSaving(true)
+    setSaveError('')
+    const savingVersion = editVersionRef.current
 
     const tags = tagsInput
       .split(',')
@@ -157,7 +172,7 @@ export function NoteDetail() {
     // before this await returns, landing outside the guard window entirely.
     justSavedAtRef.current = Date.now()
 
-    await supabase
+    const { error } = await supabase
       .from('notes')
       .update({
         title,
@@ -176,21 +191,33 @@ export function NoteDetail() {
       })
       .eq('id', note.id)
 
+    if (error) {
+      setSaving(false)
+      setSaveError(error.message || 'Could not save this note.')
+      setDirty(true)
+      return false
+    }
+
     setNote((prev) => (prev ? { ...prev, last_edited_by: user.id, updated_at: updatedAt } : prev))
     setSaving(false)
-    setDirty(false)
+    const fullySaved = editVersionRef.current === savingVersion
+    if (fullySaved) {
+      setDirty(false)
+      dirtyRef.current = false
+    }
+    return fullySaved
   }, [note, user, title, courseId, visibility, tagsInput, content, pageSettings, caseBrief])
 
   // Autosave: once something's dirty, wait for a pause in typing, then
   // save. Resets on every keystroke via handleSave's changing identity, so
   // it only actually fires AUTOSAVE_DELAY_MS after the last edit.
   useEffect(() => {
-    if (!dirty || saving) return
+    if (!dirty || saving || saveError) return
     const timer = setTimeout(() => {
       handleSave()
     }, AUTOSAVE_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [dirty, saving, handleSave])
+  }, [dirty, saving, saveError, handleSave])
 
   // Flush any pending edit immediately when leaving the note, so a quick
   // back-navigation doesn't lose the last few keystrokes to the debounce.
@@ -206,6 +233,33 @@ export function NoteDetail() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteId])
+
+  useEffect(() => {
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      if (!dirtyRef.current) return
+      event.preventDefault()
+    }
+    window.addEventListener('beforeunload', warnBeforeUnload)
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload)
+  }, [])
+
+  async function handleBack() {
+    if (!note) return
+    const destination = note.space === 'personal' ? '/us?view=notes' : '/notes'
+    if (!dirty) {
+      navigate(destination)
+      return
+    }
+    if (await handleSave()) {
+      navigate(destination)
+      return
+    }
+    if (window.confirm("Couldn't save this note. Discard your unsaved changes and leave?")) {
+      setDirty(false)
+      dirtyRef.current = false
+      navigate(destination)
+    }
+  }
 
   async function handleDelete() {
     if (!note || !window.confirm(`Delete "${note.title || 'this note'}"?`)) return
@@ -228,8 +282,92 @@ export function NoteDetail() {
   const lastEditorId = note.last_edited_by ?? note.owner_id
   const lastEditorLabel = lastEditorId === user?.id ? 'you' : (profiles[lastEditorId] ?? 'partner')
 
+  if (note.type === 'paginated') {
+    const pageSetupControls = (
+      <div className="space-y-3 text-sm">
+        <fieldset>
+          <legend className="mb-1 text-xs font-medium text-ink-muted">Paper size</legend>
+          <div className="flex gap-1">
+            {(['a4', 'letter'] as const).map((paper) => (
+              <button key={paper} type="button" aria-pressed={pageSettings.paper === paper} onClick={() => markDirty(setPageSettings)({ ...pageSettings, paper })} className={['min-h-11 rounded-lg px-3 uppercase', pageSettings.paper === paper ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}>{paper}</button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend className="mb-1 text-xs font-medium text-ink-muted">Orientation</legend>
+          <div className="flex gap-1">
+            {(['portrait', 'landscape'] as const).map((orientation) => (
+              <button key={orientation} type="button" aria-pressed={pageSettings.orientation === orientation} onClick={() => markDirty(setPageSettings)({ ...pageSettings, orientation })} className={['min-h-11 rounded-lg px-3 capitalize', pageSettings.orientation === orientation ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}>{orientation}</button>
+            ))}
+          </div>
+        </fieldset>
+        <label className="block text-xs font-medium text-ink-muted">
+          Margin (inches)
+          <input type="number" min="0.25" max="2" step="0.25" value={pageSettings.marginIn} onChange={(event) => markDirty(setPageSettings)({ ...pageSettings, marginIn: Math.min(2, Math.max(0.25, Number(event.target.value) || 0.25)) })} className="mt-1 block h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-ink outline-none focus:border-accent" />
+        </label>
+        <fieldset>
+          <legend className="mb-1 text-xs font-medium text-ink-muted">Paper style</legend>
+          <div className="grid grid-cols-2 gap-1">
+            {(['blank', 'ruled', 'grid', 'dotted'] as const).map((paperStyle) => (
+              <button key={paperStyle} type="button" aria-pressed={(pageSettings.paperStyle ?? 'blank') === paperStyle} onClick={() => markDirty(setPageSettings)({ ...pageSettings, paperStyle })} className={['min-h-11 rounded-lg px-3 capitalize', (pageSettings.paperStyle ?? 'blank') === paperStyle ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}>{paperStyle}</button>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+    )
+
+    return (
+      <section className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-bg" aria-label="Paginated note editor">
+        <header className="z-30 flex min-h-12 shrink-0 items-center gap-2 border-b border-border bg-surface px-2 print:hidden sm:min-h-[52px] sm:px-3">
+          <button type="button" onClick={handleBack} className="min-h-11 shrink-0 rounded-lg px-2 text-sm text-ink-muted hover:bg-bg hover:text-ink" aria-label={note.space === 'personal' ? 'Back to Us' : 'Back to Law'}>←</button>
+          {canManage ? (
+            <input type="text" value={title} onChange={(event) => markDirty(setTitle)(event.target.value)} placeholder="Untitled" className="min-w-0 flex-1 truncate rounded-lg border border-transparent bg-transparent px-2 py-1 text-base font-semibold text-navy outline-none focus:border-border focus:bg-bg sm:text-lg" />
+          ) : (
+            <h1 className="min-w-0 flex-1 truncate px-2 text-base font-semibold text-navy sm:text-lg">{title || 'Untitled'}</h1>
+          )}
+          {canManage && (
+            <div className="shrink-0" aria-live="polite">
+              {saveError ? (
+                <button type="button" onClick={() => handleSave()} className="rounded-lg bg-accent-bg px-2 py-1 text-xs font-medium text-accent" title={saveError}>Save failed · Retry</button>
+              ) : saving || dirty ? (
+                <span className="flex items-center gap-1 text-xs text-ink-muted"><SpinnerIcon className="h-3.5 w-3.5 animate-spin" /><span className="hidden sm:inline">Saving…</span></span>
+              ) : (
+                <span className="flex items-center gap-1 text-xs text-ink-muted"><CheckIcon className="h-3.5 w-3.5 text-accent" /><span className="hidden sm:inline">Saved</span></span>
+              )}
+            </div>
+          )}
+          {canManage && (
+            <details className="relative hidden md:block">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center rounded-lg px-3 text-sm text-ink-muted hover:bg-bg">Page setup</summary>
+              <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-xl border border-border bg-surface p-4 shadow-xl">{pageSetupControls}</div>
+            </details>
+          )}
+          {canManage && (
+            <details className="relative">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center rounded-lg px-3 text-sm text-ink-muted hover:bg-bg" aria-label="More document options">More</summary>
+              <div className="fixed inset-x-2 top-14 z-50 max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-1 sm:w-80">
+                <div className="mb-4 md:hidden">{pageSetupControls}</div>
+                <div className="space-y-3 border-t border-border pt-4 md:border-0 md:pt-0">
+                  {note.space === 'law' && courses.length > 0 && (
+                    <label className="block text-xs font-medium text-ink-muted">Course<select value={courseId} onChange={(event) => markDirty(setCourseId)(event.target.value)} className="mt-1 block h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-ink"><option value="">No course</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label>
+                  )}
+                  <fieldset><legend className="mb-1 text-xs font-medium text-ink-muted">Visibility</legend><div className="flex gap-1">{(['private', 'shared'] as const).map((value) => <button key={value} type="button" aria-pressed={visibility === value} onClick={() => markDirty(setVisibility)(value)} className={['min-h-11 rounded-lg px-3 capitalize', visibility === value ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(' ')}>{value}</button>)}</div></fieldset>
+                  <label className="block text-xs font-medium text-ink-muted">Tags<input type="text" value={tagsInput} onChange={(event) => markDirty(setTagsInput)(event.target.value)} placeholder="Comma-separated" className="mt-1 block h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-ink" /></label>
+                  <p className="text-xs text-ink-muted">Last edited by {lastEditorLabel} · {format(new Date(note.updated_at), 'MMM d, h:mm a')}</p>
+                  <button type="button" onClick={handleDelete} className="min-h-11 w-full border-t border-border pt-3 text-left text-sm font-medium text-accent">Delete note</button>
+                </div>
+              </div>
+            </details>
+          )}
+        </header>
+        {saveError && <div role="alert" className="shrink-0 border-b border-border bg-accent-bg px-3 py-2 text-xs text-accent">Couldn’t save this note. Your changes are still here. Retry before leaving.</div>}
+        {user && <PaginatedEditor content={content} editable={canManage} userId={user.id} pageSettings={pageSettings} onChange={markDirty(setContent)} />}
+      </section>
+    )
+  }
+
   return (
-    <div className={['mx-auto space-y-4 p-6 pb-16', note.type === 'paginated' ? 'max-w-5xl' : 'max-w-2xl'].join(' ')}>
+    <div className="mx-auto max-w-2xl space-y-4 p-6 pb-16">
       <Link to={note.space === 'personal' ? '/us?view=notes' : '/notes'} className="text-sm text-ink-muted hover:text-ink">
         {note.space === 'personal' ? '← Us' : '← Law'}
       </Link>
@@ -307,73 +445,8 @@ export function NoteDetail() {
         </div>
       )}
 
-      {canManage && note.type === 'paginated' && (
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {(['a4', 'letter'] as const).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => markDirty(setPageSettings)({ ...pageSettings, paper: p })}
-              className={['rounded-full px-3 py-1 font-medium uppercase', pageSettings.paper === p ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted'].join(
-                ' ',
-              )}
-            >
-              {p}
-            </button>
-          ))}
-          {(['portrait', 'landscape'] as const).map((o) => (
-            <button
-              key={o}
-              type="button"
-              onClick={() => markDirty(setPageSettings)({ ...pageSettings, orientation: o })}
-              className={[
-                'rounded-full px-3 py-1 font-medium capitalize',
-                pageSettings.orientation === o ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
-              ].join(' ')}
-            >
-              {o}
-            </button>
-          ))}
-          <label className="flex items-center gap-1.5 text-ink-muted">
-            Margin
-            <input
-              type="number"
-              min="0"
-              step="0.25"
-              value={pageSettings.marginIn}
-              onChange={(e) => markDirty(setPageSettings)({ ...pageSettings, marginIn: Number(e.target.value) || 0 })}
-              className="w-14 rounded-lg border border-border bg-bg px-1.5 py-1 text-ink outline-none focus:border-accent"
-            />
-            in
-          </label>
-          {(['blank', 'ruled', 'grid', 'dotted'] as const).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => markDirty(setPageSettings)({ ...pageSettings, paperStyle: p })}
-              className={[
-                'rounded-full px-3 py-1 font-medium capitalize',
-                (pageSettings.paperStyle ?? 'blank') === p ? 'bg-accent-bg text-accent' : 'bg-bg text-ink-muted',
-              ].join(' ')}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      )}
-
       {note.type === 'case_brief' ? (
         <CaseBriefFields value={caseBrief} editable={canManage} onChange={markDirty(setCaseBrief)} />
-      ) : note.type === 'paginated' ? (
-        user && (
-          <PaginatedEditor
-            content={content}
-            editable={canManage}
-            userId={user.id}
-            pageSettings={pageSettings}
-            onChange={markDirty(setContent)}
-          />
-        )
       ) : (
         user && <RichTextEditor content={content} editable={canManage} userId={user.id} onChange={markDirty(setContent)} />
       )}

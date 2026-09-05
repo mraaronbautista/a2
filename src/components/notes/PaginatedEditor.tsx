@@ -61,6 +61,7 @@ export function PaginatedEditor({ content, editable, userId, pageSettings, onCha
   const [zoom, setZoom] = useState(1)
   const [fitToWidth, setFitToWidth] = useState(true)
   const [findOpen, setFindOpen] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [findQuery, setFindQuery] = useState('')
   const [replaceQuery, setReplaceQuery] = useState('')
   const [matches, setMatches] = useState<FindMatch[]>([])
@@ -339,9 +340,44 @@ export function PaginatedEditor({ content, editable, userId, pageSettings, onCha
   if (!editor) return null
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       {editable && (
-        <div className="mb-2 space-y-1.5 print:hidden">
+        <div className="z-30 shrink-0 print:hidden">
+          <div className="flex min-h-12 items-center gap-1 overflow-x-auto border-b border-border bg-surface px-2 lg:hidden" aria-label="Primary formatting tools">
+            <select
+              aria-label="Text style"
+              value={currentBlockType()}
+              onChange={(e) => handleBlockTypeChange(e.target.value)}
+              className="h-11 shrink-0 rounded border border-border bg-bg px-2 text-xs text-ink outline-none"
+            >
+              {BLOCK_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+            <button type="button" aria-pressed={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} className={[BUTTON_CLASS, 'h-11 shrink-0', editor.isActive('bold') ? ACTIVE_CLASS : ''].join(' ')}>Bold</button>
+            <button type="button" aria-pressed={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} className={[BUTTON_CLASS, 'hidden h-11 shrink-0 sm:block', editor.isActive('italic') ? ACTIVE_CLASS : ''].join(' ')}>Italic</button>
+            <button type="button" aria-pressed={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} className={[BUTTON_CLASS, 'hidden h-11 shrink-0 sm:block', editor.isActive('underline') ? ACTIVE_CLASS : ''].join(' ')}>Underline</button>
+            <button type="button" aria-pressed={editor.isActive('taskList')} onClick={() => editor.chain().focus().toggleTaskList().run()} className={[BUTTON_CLASS, 'h-11 shrink-0', editor.isActive('taskList') ? ACTIVE_CLASS : ''].join(' ')}>Checklist</button>
+            <button type="button" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={[BUTTON_CLASS, 'h-11 shrink-0'].join(' ')}>Undo</button>
+            <button type="button" aria-expanded={toolsOpen} aria-controls="paginated-editor-tools" onClick={() => setToolsOpen(true)} className={[BUTTON_CLASS, 'ml-auto h-11 shrink-0 bg-accent-bg text-accent'].join(' ')}>Tools</button>
+          </div>
+
+          {toolsOpen && <button type="button" aria-label="Close tools" className="fixed inset-0 z-40 bg-black/30 lg:hidden" onClick={() => setToolsOpen(false)} />}
+          <div
+            id="paginated-editor-tools"
+            role="dialog"
+            aria-modal={toolsOpen ? 'true' : undefined}
+            aria-label="Editor tools"
+            className={[
+              'space-y-1.5 bg-surface',
+              'lg:block lg:border-b lg:border-border lg:p-2',
+              toolsOpen
+                ? 'fixed inset-x-0 bottom-0 z-50 max-h-[75dvh] overflow-y-auto rounded-t-2xl border border-border p-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl lg:static lg:max-h-none lg:overflow-visible lg:rounded-none lg:shadow-none'
+                : 'hidden',
+            ].join(' ')}
+          >
+          <div className="mb-2 flex items-center justify-between lg:hidden">
+            <strong className="text-sm text-ink">Editor tools</strong>
+            <button type="button" onClick={() => setToolsOpen(false)} className="min-h-11 rounded-lg px-3 text-sm text-ink-muted">Done</button>
+          </div>
           <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-bg p-1.5">
             <select
               value={currentBlockType()}
@@ -587,10 +623,11 @@ export function PaginatedEditor({ content, editable, userId, pageSettings, onCha
               Print / Export PDF
             </button>
           </div>
+          </div>
         </div>
       )}
 
-      <div ref={scrollAreaRef} className="paginated-scroll-area overflow-x-auto overflow-y-visible print:overflow-visible">
+      <div ref={scrollAreaRef} className="paginated-scroll-area min-h-0 flex-1 overflow-auto px-3 py-4 print:overflow-visible print:p-0 sm:px-4 lg:px-8">
         <div
           className="paginated-page-stack mx-auto origin-top print:!transform-none print:!m-0"
           style={{ transform: `scale(${zoom})`, width: `${dims.width}mm` }}

@@ -13,6 +13,8 @@ import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
 import { NotesIcon, TimelineIcon, BudgetIcon, UsIcon } from './icons'
 import { PomodoroTimer } from '../study/PomodoroTimer'
+import { FocusLayoutProvider } from '../../hooks/FocusLayoutProvider'
+import { useFocusLayout } from '../../hooks/useFocusLayout'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Timeline', Icon: TimelineIcon },
@@ -34,13 +36,14 @@ function navLinkClass(isActive: boolean) {
   ].join(' ')
 }
 
-export function AppShell() {
+function AppShellContent() {
   const { theme, toggleTheme } = useTheme()
   const { user } = useAuth()
   const { householdId } = useHousehold()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
+  const { focused } = useFocusLayout()
   const { hidden: pomodoroHidden, setPomodoroHidden } = usePomodoroVisibility()
   const { activated: pomodoroActivated, markActivated: markPomodoroActivated } = usePomodoroActivated()
   // Bumped by Settings' "Open study timer" so PomodoroTimer can open its
@@ -83,7 +86,7 @@ export function AppShell() {
     <SettingsContext.Provider value={{ openSettings: () => setSettingsOpen(true) }}>
       <QuickAddContext.Provider value={quickAddContextValue}>
         <div className="flex h-dvh flex-col bg-bg md:flex-row">
-          <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-6 md:flex">
+          {!focused && <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-6 md:flex">
             <Logo size={36} className="rounded-lg" />
 
             {user && householdId && (
@@ -114,13 +117,13 @@ export function AppShell() {
             >
               Settings
             </button>
-          </aside>
+          </aside>}
 
-          <main className="flex-1 overflow-y-auto">
+          <main className={focused ? 'min-w-0 flex-1 overflow-hidden' : 'min-w-0 flex-1 overflow-y-auto'}>
             <Outlet />
           </main>
 
-          <nav className="flex shrink-0 items-center justify-center gap-3 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:hidden">
+          {!focused && <nav className="flex shrink-0 items-center justify-center gap-3 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:hidden">
             <div className="flex items-center gap-1 rounded-full border border-border bg-surface p-1.5 shadow-lg">
               {NAV_ITEMS.map((item) => (
                 <NavLink
@@ -145,7 +148,7 @@ export function AppShell() {
                 +
               </button>
             )}
-          </nav>
+          </nav>}
 
           {user && householdId && (
             <QuickAddModal
@@ -183,5 +186,13 @@ export function AppShell() {
         </div>
       </QuickAddContext.Provider>
     </SettingsContext.Provider>
+  )
+}
+
+export function AppShell() {
+  return (
+    <FocusLayoutProvider>
+      <AppShellContent />
+    </FocusLayoutProvider>
   )
 }
