@@ -158,6 +158,34 @@ Delivery order:
 
 1. Paginated typed notes: immersive editor, A4/Letter flow, images, page breaks, autosave, responsive
    tools, print preview, and PDF output.
+
+   **Status: ~90% done.** A new `paginated` note type is live (Law or Us's personal notes → New
+   note). Shipped: real A4/Letter pages with configurable margins/orientation, live pagination that
+   reflows as you type, manual page breaks, the full formatting set (headings, bold/italic/
+   underline, text color, multicolor highlight, alignment, indentation, bulleted/ordered/checklist
+   lists, tables, links, images), find/replace, undo/redo, blank/ruled/grid/dotted paper, true
+   fit-to-width (on by default — this is what keeps a full page usable on a phone rather than
+   requiring manual zoom or endless horizontal scroll), and print/PDF export that reuses the exact
+   on-screen page boxes rather than a second layout.
+
+   How the pagination itself works, since there's no "flow across pages" built into ProseMirror/
+   Tiptap: the document stays one continuous, normally-editable ProseMirror doc — never split into
+   per-page editor instances, which would be far riskier for cursor/undo correctness. A debounced
+   measurement pass walks the rendered top-level nodes after each edit and works out where breaks
+   need to fall; a small custom extension turns those into blank widget-decoration spacers that push
+   subsequent content down to the next page-shaped background sheet — a pure rendering overlay, no
+   document steps, invisible to undo/redo. Same trick behind how Google Docs paginates.
+
+   Known limitation, not yet solved: breaks are block-level only — a break lands *between*
+   top-level nodes (paragraphs, headings, images, tables), never inside one, so a single node taller
+   than a page (a huge image, a long table) still overflows past the page edge visually. Real
+   mid-node splitting is genuine word-processor territory, deferred.
+
+   Not yet built: a distinct full-screen "immersive" editor mode (it currently sits in the same page
+   shell as every other note, just with a wider column) and the bespoke desktop/iPad/phone chrome
+   from the Responsive behavior section below (collapsible sidebar, thumbnail rail, bottom-sheet
+   toolbar) — fit-to-width solves the practical "usable on a phone" problem without that larger
+   workspace-shell redesign, which is its own follow-up.
 2. PDF reading: upload/storage, reader, thumbnails, search, bookmarks/progress, annotations,
    citations, locally extracted/reflowed text, and linked notes.
 3. Notebook organization: page management, paper templates, notebooks/sections, covers, favorites,
