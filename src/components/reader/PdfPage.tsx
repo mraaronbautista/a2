@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { TextLayer, type PDFDocumentProxy, type RenderTask } from 'pdfjs-dist'
 import { clampRect } from '../../lib/pdfText'
-import type { ReadingAnnotation, TextAnchor } from '../../lib/readingTypes'
+import type { AnnotationColor, PdfInkAnchor, ReadingAnnotation, TextAnchor } from '../../lib/readingTypes'
 
 interface Props {
   pdf: PDFDocumentProxy
@@ -14,16 +14,20 @@ interface Props {
   thumbnail?: boolean
   annotations?: ReadingAnnotation[]
   onTextSelection?: (quotedText: string, anchor: TextAnchor) => void
+  inkActive?: boolean
+  inkColor?: AnnotationColor
+  onInk?: (anchor: PdfInkAnchor, color: AnnotationColor) => void
 }
 
 const COLOR: Record<string, string> = { yellow: '#fde68a99', green: '#bbf7d099', blue: '#bfdbfe99', pink: '#fbcfe899', purple: '#e9d5ff99' }
 
-export function PdfPage({ pdf, pageNumber, scale, availableWidth = 0, availableHeight = 0, zoomMode = 'custom', rotation = 0, thumbnail = false, annotations = [], onTextSelection }: Props) {
+export function PdfPage({ pdf, pageNumber, scale, availableWidth = 0, availableHeight = 0, zoomMode = 'custom', rotation = 0, thumbnail = false, annotations = [], onTextSelection, inkActive=false, inkColor='yellow', onInk }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const textRef = useRef<HTMLDivElement>(null)
   const [rendering, setRendering] = useState(true)
   const [error, setError] = useState('')
+  const [inkPoints,setInkPoints]=useState<Array<{x:number;y:number}>>([])
 
   useEffect(() => {
     let active = true; let renderTask: RenderTask | null = null; let textLayer: TextLayer | null = null
@@ -77,6 +81,6 @@ export function PdfPage({ pdf, pageNumber, scale, availableWidth = 0, availableH
     {error && <div className="absolute inset-0 z-30 flex items-center justify-center bg-white p-4 text-sm text-red-700">{error}</div>}
     <canvas ref={canvasRef} className="block" />
     {!thumbnail && <div ref={textRef} className="pdf-text-layer absolute inset-0 overflow-hidden opacity-100" />}
-    {!thumbnail && <div className="pointer-events-none absolute inset-0 z-10">{annotations.filter((item) => item.anchor).flatMap((item) => item.anchor!.rects.map((rect, index) => <span key={`${item.id}-${index}`} className="absolute mix-blend-multiply" style={{ left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.width * 100}%`, height: `${rect.height * 100}%`, background: COLOR[item.color] }} />))}</div>}
+    {!thumbnail && <svg viewBox="0 0 1 1" preserveAspectRatio="none" className={`absolute inset-0 z-10 h-full w-full ${inkActive?'pointer-events-auto touch-none':'pointer-events-none'}`} onPointerDown={e=>{if(!inkActive)return;e.currentTarget.setPointerCapture(e.pointerId);const r=e.currentTarget.getBoundingClientRect();setInkPoints([{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height}])}} onPointerMove={e=>{if(!inkPoints.length)return;const r=e.currentTarget.getBoundingClientRect();setInkPoints(p=>[...p,{x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))}])}} onPointerUp={()=>{if(inkPoints.length>1)onInk?.({version:1,strokes:[{color:inkColor,sizeMm:.6,points:inkPoints}]},inkColor);setInkPoints([])}}>{annotations.filter(item=>item.kind==='highlight'&&item.anchor&&'rects' in item.anchor).flatMap(item=>(item.anchor as TextAnchor).rects.map((rect,index)=><rect key={`${item.id}-${index}`} x={rect.x} y={rect.y} width={rect.width} height={rect.height} fill={COLOR[item.color]}/>))}{annotations.filter(item=>item.kind==='ink'&&item.anchor&&'strokes' in item.anchor).flatMap(item=>(item.anchor as PdfInkAnchor).strokes.map((stroke,index)=><polyline key={`${item.id}-${index}`} points={stroke.points.map(p=>`${p.x},${p.y}`).join(' ')} fill="none" stroke={COLOR[item.color]?.slice(0,7)??'#dc2626'} strokeWidth=".0025"/>))}{inkPoints.length>0&&<polyline points={inkPoints.map(p=>`${p.x},${p.y}`).join(' ')} fill="none" stroke={COLOR[inkColor].slice(0,7)} strokeWidth=".0025"/>}</svg>}
   </div>
 }

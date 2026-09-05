@@ -15,6 +15,7 @@ import { DEFAULT_PAGE_SETTINGS, type PageSettings } from '../lib/pageSizes'
 import { useFocusLayout } from '../hooks/useFocusLayout'
 import { PAPER_TEMPLATES } from '../lib/paperTemplates'
 import { notePlainText } from '../lib/notePlainText'
+import { CanvasEditor } from '../components/notes/CanvasEditor'
 
 // How long to wait after the last keystroke before autosaving.
 const AUTOSAVE_DELAY_MS = 900
@@ -36,7 +37,7 @@ interface Course {
 interface NoteRow {
   id: string
   title: string
-  type: 'case_brief' | 'freeform' | 'paginated'
+  type: 'case_brief' | 'freeform' | 'paginated' | 'canvas'
   visibility: 'private' | 'shared'
   space: 'law' | 'personal'
   owner_id: string
@@ -290,6 +291,8 @@ export function NoteDetail() {
   const canManage = user ? user.id === note.owner_id || note.visibility === 'shared' : false
   const lastEditorId = note.last_edited_by ?? note.owner_id
   const lastEditorLabel = lastEditorId === user?.id ? 'you' : (profiles[lastEditorId] ?? 'partner')
+
+  if (note.type === 'canvas') return <section className="flex h-full min-h-0 flex-col bg-bg"><header className="flex min-h-12 items-center gap-2 border-b border-border bg-surface px-3 print:hidden"><button onClick={handleBack} className="px-2 text-sm text-ink-muted">←</button><h1 className="min-w-0 flex-1 truncate font-semibold text-navy">{note.title||'Untitled canvas'}</h1><span className="text-xs text-ink-muted">Canvas</span></header>{user&&<CanvasEditor noteId={note.id} userId={user.id} editable={canManage}/>}</section>
 
   if (note.type === 'paginated') {
     const pageSetupControls = (

@@ -86,6 +86,18 @@ export type Database = {
           },
         ]
       }
+      canvas_pages: {
+        Row: { created_at: string; elements: Json; id: string; note_id: string; order_index: number; page_settings: Json; updated_at: string }
+        Insert: { created_at?: string; elements?: Json; id?: string; note_id: string; order_index?: number; page_settings: Json; updated_at?: string }
+        Update: { created_at?: string; elements?: Json; id?: string; note_id?: string; order_index?: number; page_settings?: Json; updated_at?: string }
+        Relationships: [{ foreignKeyName: "canvas_pages_note_id_fkey"; columns: ["note_id"]; isOneToOne: false; referencedRelation: "notes"; referencedColumns: ["id"] }]
+      }
+      canvas_signatures: {
+        Row: { created_at: string; id: string; name: string; strokes: Json; user_id: string }
+        Insert: { created_at?: string; id?: string; name: string; strokes: Json; user_id: string }
+        Update: { created_at?: string; id?: string; name?: string; strokes?: Json; user_id?: string }
+        Relationships: []
+      }
       budget_settings: {
         Row: {
           category_limits: Json
@@ -1148,10 +1160,12 @@ export type Database = {
       can_access_notebook: { Args: { p_notebook_id: string }; Returns: boolean }
       can_access_reading: { Args: { p_reading_item_id: string }; Returns: boolean }
       can_access_section: { Args: { p_section_id: string }; Returns: boolean }
+      can_edit_note: { Args: { p_note_id: string }; Returns: boolean }
       can_manage_course: { Args: { p_course_id: string }; Returns: boolean }
       can_manage_notebook: { Args: { p_notebook_id: string }; Returns: boolean }
       can_manage_section: { Args: { p_section_id: string }; Returns: boolean }
       create_notebook_with_section: { Args: { p_course_id: string | null; p_cover: Json; p_description: string; p_household_id: string; p_name: string; p_space: string; p_visibility: string }; Returns: string }
+      create_canvas_note: { Args: { p_course_id: string | null; p_household_id: string; p_page_settings: Json; p_title: string; p_visibility: string }; Returns: string }
       create_reading_linked_note: {
         Args: {
           p_annotation_id: string | null
@@ -1165,6 +1179,8 @@ export type Database = {
         Returns: string
       }
       delete_notebook_unfile: { Args: { target_notebook_id: string }; Returns: undefined }
+      delete_canvas_page: { Args: { target_page_id: string }; Returns: undefined }
+      duplicate_canvas_page: { Args: { target_page_id: string }; Returns: string }
       delete_section_unfile: { Args: { target_section_id: string }; Returns: undefined }
       file_note: { Args: { target_note_id: string; target_section_id: string }; Returns: string }
       file_reading: { Args: { target_reading_id: string; target_section_id: string }; Returns: string }
@@ -1176,6 +1192,7 @@ export type Database = {
       move_library_entry: { Args: { target_entry_id: string; target_section_id: string }; Returns: undefined }
       remove_library_entry: { Args: { target_entry_id: string }; Returns: undefined }
       reorder_library_entry: { Args: { after_id: string | null; before_id: string | null; target_entry_id: string }; Returns: undefined }
+      reorder_canvas_page: { Args: { after_id: string | null; before_id: string | null; target_page_id: string }; Returns: undefined }
       reorder_notebook: { Args: { after_id: string | null; before_id: string | null; target_notebook_id: string }; Returns: undefined }
       reorder_section: { Args: { after_id: string | null; before_id: string | null; target_section_id: string }; Returns: undefined }
       same_household: { Args: { target_user_id: string }; Returns: boolean }

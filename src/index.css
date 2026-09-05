@@ -260,6 +260,12 @@ textarea {
    the whole point of pagination being measured against real physical
    units (see lib/pageSizes.ts) instead of arbitrary CSS pixels. */
 @media print {
+  .canvas-page {
+    display: block !important;
+    box-shadow: none !important;
+    break-after: page;
+    page-break-after: always;
+  }
   body * {
     visibility: hidden;
   }

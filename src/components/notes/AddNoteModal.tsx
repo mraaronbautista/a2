@@ -17,7 +17,7 @@ interface AddNoteModalProps {
   onClose: () => void
 }
 
-type NoteType = 'freeform' | 'case_brief' | 'paginated'
+type NoteType = 'freeform' | 'case_brief' | 'paginated' | 'canvas'
 
 export function AddNoteModal({ householdId, userId, space, courses, onClose }: AddNoteModalProps) {
   const navigate = useNavigate()
@@ -35,6 +35,7 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
           ['freeform', 'Freeform'],
           ['case_brief', 'Case brief'],
           ['paginated', 'Paginated document'],
+          ['canvas', 'Canvas notebook'],
         ]
       : [
           ['freeform', 'Freeform'],
@@ -47,6 +48,10 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
 
     const resolvedType: NoteType = space === 'law' ? type : type === 'case_brief' ? 'freeform' : type
 
+    if (resolvedType === 'canvas') {
+      const { data } = await supabase.rpc('create_canvas_note', { p_household_id: householdId, p_course_id: courseId || null, p_title: title, p_visibility: 'shared', p_page_settings: { paper, orientation, marginIn: DEFAULT_PAGE_SETTINGS.marginIn, paperStyle } })
+      setSaving(false); onClose(); if (data) navigate(`/notes/${data}`); return
+    }
     const { data } = await supabase
       .from('notes')
       .insert({
@@ -97,7 +102,7 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
           ))}
         </div>
 
-        {type === 'paginated' && (
+        {(type === 'paginated' || type === 'canvas') && (
           <div className="space-y-2 rounded-lg border border-border bg-bg p-2.5">
             <div className="flex gap-1.5 text-xs">
               {(['a4', 'letter'] as const).map((p) => (

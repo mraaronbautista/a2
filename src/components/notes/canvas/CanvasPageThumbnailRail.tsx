@@ -1,0 +1,4 @@
+import type { CanvasPage } from '../../../lib/canvasTypes'
+import { pageDimensionsMm } from '../../../lib/pageSizes'
+import { CanvasElementLayer } from './CanvasElementLayer'
+export function CanvasPageThumbnailRail({pages,active,onSelect}: {pages:CanvasPage[];active:string;onSelect:(id:string)=>void}){return <nav aria-label="Canvas pages" className="flex gap-2 overflow-auto p-2 lg:w-36 lg:flex-col">{pages.map((page,index)=>{const d=pageDimensionsMm(page.page_settings.paper,page.page_settings.orientation);return <button key={page.id} aria-current={active===page.id?'page':undefined} onClick={()=>onSelect(page.id)} className={`h-24 w-20 shrink-0 rounded border bg-white p-1 ${active===page.id?'border-accent':'border-border'}`}><svg viewBox={`0 0 ${d.width} ${d.height}`} className="h-20 w-full"><CanvasElementLayer elements={page.elements} selected={new Set()}/></svg><span className="text-[9px] text-ink-muted">{index+1}</span></button>})}</nav>}

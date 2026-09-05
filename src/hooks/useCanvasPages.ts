@@ -1,0 +1,14 @@
+import { useCallback,useEffect,useRef,useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
+import type { Json } from '../types/database'
+import type { CanvasElement,CanvasPage } from '../lib/canvasTypes'
+import { DEFAULT_PAGE_SETTINGS } from '../lib/pageSizes'
+const SELF_ECHO_MS=6000
+export function useCanvasPages(noteId:string){const [pages,setPages]=useState<CanvasPage[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState('');const savedAt=useRef(0)
+ const load=useCallback(async()=>{const {data,error:loadError}=await supabase.from('canvas_pages').select('*').eq('note_id',noteId).order('order_index');if(loadError){setError(loadError.message);setLoading(false);return}setPages((data??[]).map(row=>({...row,page_settings:(row.page_settings??DEFAULT_PAGE_SETTINGS) as unknown as CanvasPage['page_settings'],elements:(Array.isArray(row.elements)?row.elements:[]) as unknown as CanvasElement[]})));setLoading(false)},[noteId]);useEffect(()=>{void load()},[load]);useEffect(()=>{const channel=supabase.channel(`canvas-${noteId}`).on('postgres_changes',{event:'*',schema:'public',table:'canvas_pages',filter:`note_id=eq.${noteId}`},()=>{if(Date.now()-savedAt.current>=SELF_ECHO_MS)void load()}).subscribe();return()=>{void supabase.removeChannel(channel)}},[load,noteId]);
+ async function savePage(id:string,elements:CanvasElement[]){savedAt.current=Date.now();const {error:saveError}=await supabase.from('canvas_pages').update({elements:elements as unknown as Json,updated_at:new Date().toISOString()}).eq('id',id);if(saveError){setError(saveError.message);return false}setPages(p=>p.map(page=>page.id===id?{...page,elements}:page));return true}
+ async function addPage(settings=pages.at(-1)?.page_settings??DEFAULT_PAGE_SETTINGS){const order=(pages.at(-1)?.order_index??0)+1024;const {data}=await supabase.from('canvas_pages').insert({note_id:noteId,order_index:order,page_settings:settings as unknown as Json,elements:[]}).select('*').single();if(data){await load();return data.id}return null}
+ async function duplicatePage(id:string){const {data}=await supabase.rpc('duplicate_canvas_page',{target_page_id:id});await load();return data as string|null}
+ async function deletePage(id:string){const {error:deleteError}=await supabase.rpc('delete_canvas_page',{target_page_id:id});if(deleteError){setError(deleteError.message);return false}await load();return true}
+ async function movePage(id:string,direction:-1|1){const index=pages.findIndex(p=>p.id===id),target=index+direction;if(target<0||target>=pages.length)return;const rest=pages.filter(p=>p.id!==id),at=Math.max(0,Math.min(target,rest.length));await supabase.rpc('reorder_canvas_page',{target_page_id:id,before_id:rest[at-1]?.id??null,after_id:rest[at]?.id??null});await load()}
+ return{pages,loading,error,setError,load,savePage,addPage,duplicatePage,deletePage,movePage}}

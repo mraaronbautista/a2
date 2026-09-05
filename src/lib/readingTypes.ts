@@ -1,10 +1,11 @@
 export type ReaderViewMode = 'page' | 'reflow'
 export type ReaderZoomMode = 'fit-width' | 'fit-page' | 'custom'
-export type AnnotationKind = 'highlight' | 'note'
+export type AnnotationKind = 'highlight' | 'note' | 'ink'
 export type AnnotationColor = 'yellow' | 'green' | 'blue' | 'pink' | 'purple'
 
 export interface NormalizedRect { x: number; y: number; width: number; height: number }
 export interface TextAnchor { version: 1; rects: NormalizedRect[]; textStart: number; textEnd: number }
+export interface PdfInkAnchor { version: 1; strokes: Array<{ color: string; sizeMm: number; points: Array<{ x: number; y: number }> }> }
 export interface ExtractedPage { pageNumber: number; text: string; blocks: Array<{ text: string; heading: boolean }> }
 export interface PdfSearchResult { pageNumber: number; matchCount: number; snippet: string }
 
@@ -21,6 +22,6 @@ export interface ReadingAnnotation {
   color: AnnotationColor
   quoted_text: string | null
   body: string
-  anchor: TextAnchor | null
+  anchor: TextAnchor | PdfInkAnchor | null
   created_at: string
 }

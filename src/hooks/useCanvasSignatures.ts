@@ -1,0 +1,5 @@
+import { useCallback,useEffect,useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
+import type { Json } from '../types/database'
+import type { CanvasPoint,CanvasSignature } from '../lib/canvasTypes'
+export function useCanvasSignatures(userId:string){const [signatures,setSignatures]=useState<CanvasSignature[]>([]);const load=useCallback(async()=>{const{data}=await supabase.from('canvas_signatures').select('*').eq('user_id',userId).order('created_at');setSignatures((data??[]) as unknown as CanvasSignature[])},[userId]);useEffect(()=>{void load()},[load]);async function save(name:string,strokes:Array<{points:CanvasPoint[]}>){const{data,error}=await supabase.from('canvas_signatures').insert({user_id:userId,name,strokes:strokes as unknown as Json}).select('*').single();if(!error)await load();return{signature:data as unknown as CanvasSignature|null,error}}async function remove(id:string){await supabase.from('canvas_signatures').delete().eq('id',id);await load()}return{signatures,save,remove}}

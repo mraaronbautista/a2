@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import type { AnnotationColor, ReadingAnnotation, ReadingBookmark, TextAnchor } from '../lib/readingTypes'
+import type { AnnotationColor, PdfInkAnchor, ReadingAnnotation, ReadingBookmark, TextAnchor } from '../lib/readingTypes'
 import type { Json } from '../types/database'
 
 export function useReadingAnnotations(readingId: string, userId: string) {
@@ -52,6 +52,7 @@ export function useReadingAnnotations(readingId: string, userId: string) {
     return result.error ? null : item
   }
   async function upsertNote(page: number, body: string, quotedText: string | null = null, anchor: TextAnchor | null = null) {
+    void anchor
     const trimmedBody = body.slice(0, 20_000)
     const existing = annotations.find((item) => item.kind === 'note' && item.page_number === page)
 
@@ -62,17 +63,17 @@ export function useReadingAnnotations(readingId: string, userId: string) {
 
     if (existing) {
       const previous = annotations
-      const updated: ReadingAnnotation = { ...existing, body: trimmedBody, quoted_text: quotedText, anchor }
+      const updated: ReadingAnnotation = { ...existing, body: trimmedBody, quoted_text: quotedText, anchor: null }
       setAnnotations((items) => items.map((item) => (item.id === existing.id ? updated : item)))
-      const result = await supabase.from('reading_annotations').update({ body: trimmedBody, quoted_text: quotedText, anchor: anchor as unknown as Json }).eq('id', existing.id)
+      const result = await supabase.from('reading_annotations').update({ body: trimmedBody, quoted_text: quotedText, anchor: null }).eq('id', existing.id)
       if (result.error) { setAnnotations(previous); setError(result.error.message); return null }
       return updated
     }
 
     const id = crypto.randomUUID(); const created_at = new Date().toISOString()
-    const item: ReadingAnnotation = { id, page_number: page, kind: 'note', color: 'yellow', quoted_text: quotedText, body: trimmedBody, anchor, created_at }
+    const item: ReadingAnnotation = { id, page_number: page, kind: 'note', color: 'yellow', quoted_text: quotedText, body: trimmedBody, anchor: null, created_at }
     setAnnotations((items) => [...items, item])
-    const result = await supabase.from('reading_annotations').insert({ id, reading_item_id: readingId, user_id: userId, page_number: page, kind: 'note', body: trimmedBody, quoted_text: quotedText, anchor: anchor as unknown as Json })
+    const result = await supabase.from('reading_annotations').insert({ id, reading_item_id: readingId, user_id: userId, page_number: page, kind: 'note', body: trimmedBody, quoted_text: quotedText, anchor: null })
     if (result.error) { setAnnotations((items) => items.filter((annotation) => annotation.id !== id)); setError(result.error.message); return null }
     return item
   }
@@ -81,5 +82,6 @@ export function useReadingAnnotations(readingId: string, userId: string) {
     const result = await supabase.from('reading_annotations').delete().eq('id', id)
     if (result.error) { setAnnotations(previous); setError(result.error.message) }
   }
-  return { bookmarks, annotations, error, toggleBookmark, setBookmarkLabel, createHighlight, upsertNote, deleteAnnotation }
+  async function createInk(page: number, anchor: PdfInkAnchor, color: AnnotationColor) { const id=crypto.randomUUID(),created_at=new Date().toISOString();const item:ReadingAnnotation={id,page_number:page,kind:'ink',color,quoted_text:null,body:'',anchor,created_at};setAnnotations(items=>[...items,item]);const result=await supabase.from('reading_annotations').insert({id,reading_item_id:readingId,user_id:userId,page_number:page,kind:'ink',color,quoted_text:null,body:'',anchor:anchor as unknown as Json});if(result.error)setAnnotations(items=>items.filter(a=>a.id!==id));return result.error?null:item }
+  return { bookmarks, annotations, error, toggleBookmark, setBookmarkLabel, createHighlight, upsertNote, createInk, deleteAnnotation }
 }
