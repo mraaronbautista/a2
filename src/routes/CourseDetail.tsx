@@ -215,6 +215,10 @@ export function CourseDetail() {
         )}
       </div>
 
+      <Link to={`/practice?course=${course.id}`} className="inline-flex rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium text-accent hover:border-accent">
+        Practice this course
+      </Link>
+
       <div>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink-muted">Readings</h2>

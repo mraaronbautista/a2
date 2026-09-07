@@ -10,6 +10,8 @@ import { ReadingDetail } from './routes/ReadingDetail'
 import { Budget } from './routes/Budget'
 import { Us } from './routes/Us'
 import { NotebookDetail } from './routes/NotebookDetail'
+import { Practice } from './routes/Practice'
+import { PracticeQuestion } from './routes/PracticeQuestion'
 
 function App() {
   const { session, loading } = useAuth()
@@ -36,6 +38,8 @@ function App() {
         <Route path="/notes/:noteId" element={<NoteDetail />} />
         <Route path="/readings/:readingId" element={<ReadingDetail />} />
         <Route path="/notebooks/:notebookId" element={<NotebookDetail />} />
+        <Route path="/practice" element={<Practice />} />
+        <Route path="/practice/:questionId" element={<PracticeQuestion />} />
         <Route path="/budget" element={<Budget />} />
         <Route path="/us" element={<Us />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -1131,6 +1131,24 @@ export type Database = {
           },
         ]
       }
+      practice_questions: {
+        Row: { id:string; household_id:string; created_by:string; source_tier:string; bar_year:number; exam_date:string|null; subject:string; question_number:string; question_text:string; source_url:string; source_page:number|null; source_fingerprint:string|null; course_id:string|null; reading_item_id:string|null; legal_cutoff_date:string|null; review_status:string; reviewed_by:string|null; reviewed_at:string|null; locked:boolean; answer_key:Json; edit_history:Json; created_at:string; updated_at:string }
+        Insert: { id?:string; household_id:string; created_by:string; source_tier:string; bar_year:number; exam_date?:string|null; subject:string; question_number:string; question_text:string; source_url:string; source_page?:number|null; source_fingerprint?:string|null; course_id?:string|null; reading_item_id?:string|null; legal_cutoff_date?:string|null; review_status?:string; reviewed_by?:string|null; reviewed_at?:string|null; locked?:boolean; answer_key?:any; edit_history?:Json; created_at?:string; updated_at?:string }
+        Update: { review_status?:string; reviewed_by?:string|null; reviewed_at?:string|null; locked?:boolean; updated_at?:string }
+        Relationships: []
+      }
+      practice_attempts: {
+        Row: { id:string; question_id:string; user_id:string; household_id:string; mode:string; answer_direct:string|null; answer_legal_basis:string|null; answer_application:string|null; answer_conclusion:string|null; answer_freeform:string|null; alac_findings:Json; writing_findings:Json; started_at:string; submitted_at:string|null; revealed_early:boolean; created_at:string; updated_at:string }
+        Insert: { id?:string; question_id:string; user_id:string; household_id:string; mode:string; answer_direct?:string|null; answer_legal_basis?:string|null; answer_application?:string|null; answer_conclusion?:string|null; answer_freeform?:string|null; alac_findings?:Json; writing_findings?:Json; submitted_at?:string|null; revealed_early?:boolean }
+        Update: { answer_direct?:string|null; answer_legal_basis?:string|null; answer_application?:string|null; answer_conclusion?:string|null; answer_freeform?:string|null; alac_findings?:any; writing_findings?:any; submitted_at?:string|null; revealed_early?:boolean; updated_at?:string }
+        Relationships: []
+      }
+      attempt_feedback: {
+        Row: { id:string; attempt_id:string; grader_type:string; grader_user_id:string|null; rubric_version:string; scores:Json; total_score:number; comments:Json; created_at:string; updated_at:string }
+        Insert: { id?:string; attempt_id:string; grader_type:string; grader_user_id?:string|null; rubric_version:string; scores:Json; total_score:number; comments?:Json; created_at?:string; updated_at?:string }
+        Update: { attempt_id?:string; grader_type?:string; grader_user_id?:string|null; rubric_version?:string; scores?:any; total_score?:number; comments?:Json; updated_at?:string }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1156,6 +1174,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      add_attempt_feedback_comment: { Args: { p_feedback_id:string; p_body:string; p_disposition:string }; Returns: Database['public']['Tables']['attempt_feedback']['Row'] }
+      correct_locked_question: { Args: { p_question_id:string; p_field:string; p_new_value:string; p_reason:string }; Returns:string }
       can_access_note: { Args: { p_note_id: string }; Returns: boolean }
       can_access_notebook: { Args: { p_notebook_id: string }; Returns: boolean }
       can_access_reading: { Args: { p_reading_item_id: string }; Returns: boolean }

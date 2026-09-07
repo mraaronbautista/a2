@@ -28,6 +28,10 @@ export function NotesIcon({ className }: IconProps) {
   )
 }
 
+export function PracticeIcon({ className }: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className??BASE}><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h5M8 16l1.5 1.5L12 15"/></svg>
+}
+
 // A wallet with a coin slot circle — reads as "money" distinct from
 // Shopping/Notes glyphs elsewhere in the app.
 export function BudgetIcon({ className }: IconProps) {

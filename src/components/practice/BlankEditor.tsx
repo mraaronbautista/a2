@@ -1,0 +1,1 @@
+export function BlankEditor({value,onChange}:{value:string;onChange:(v:string)=>void}){return <label className="block text-sm font-medium">Your answer<textarea spellCheck value={value} onChange={e=>onChange(e.target.value)} placeholder="Write your complete answer…" className="mt-1 min-h-80 w-full rounded-xl border border-border bg-surface p-4 font-normal leading-7"/></label>}
