@@ -1138,15 +1138,21 @@ export type Database = {
         Relationships: []
       }
       practice_attempts: {
-        Row: { id:string; question_id:string; user_id:string; household_id:string; mode:string; answer_direct:string|null; answer_legal_basis:string|null; answer_application:string|null; answer_conclusion:string|null; answer_freeform:string|null; alac_findings:Json; writing_findings:Json; started_at:string; submitted_at:string|null; revealed_early:boolean; created_at:string; updated_at:string }
-        Insert: { id?:string; question_id:string; user_id:string; household_id:string; mode:string; answer_direct?:string|null; answer_legal_basis?:string|null; answer_application?:string|null; answer_conclusion?:string|null; answer_freeform?:string|null; alac_findings?:Json; writing_findings?:Json; submitted_at?:string|null; revealed_early?:boolean }
-        Update: { answer_direct?:string|null; answer_legal_basis?:string|null; answer_application?:string|null; answer_conclusion?:string|null; answer_freeform?:string|null; alac_findings?:any; writing_findings?:any; submitted_at?:string|null; revealed_early?:boolean; updated_at?:string }
+        Row: { id:string; question_id:string; user_id:string; household_id:string; mode:string; answer_direct:string|null; answer_legal_basis:string|null; answer_application:string|null; answer_conclusion:string|null; answer_freeform:string|null; alac_findings:Json; writing_findings:Json; started_at:string; submitted_at:string|null; revealed_early:boolean; is_benchmark:boolean; created_at:string; updated_at:string }
+        Insert: { id?:string; question_id:string; user_id:string; household_id:string; mode:string; answer_direct?:string|null; answer_legal_basis?:string|null; answer_application?:string|null; answer_conclusion?:string|null; answer_freeform?:string|null; alac_findings?:Json; writing_findings?:Json; submitted_at?:string|null; revealed_early?:boolean; is_benchmark?:boolean }
+        Update: { answer_direct?:string|null; answer_legal_basis?:string|null; answer_application?:string|null; answer_conclusion?:string|null; answer_freeform?:string|null; alac_findings?:any; writing_findings?:any; submitted_at?:string|null; revealed_early?:boolean; is_benchmark?:boolean; updated_at?:string }
         Relationships: []
       }
       attempt_feedback: {
-        Row: { id:string; attempt_id:string; grader_type:string; grader_user_id:string|null; rubric_version:string; scores:Json; total_score:number; comments:Json; created_at:string; updated_at:string }
-        Insert: { id?:string; attempt_id:string; grader_type:string; grader_user_id?:string|null; rubric_version:string; scores:Json; total_score:number; comments?:Json; created_at?:string; updated_at?:string }
-        Update: { attempt_id?:string; grader_type?:string; grader_user_id?:string|null; rubric_version?:string; scores?:any; total_score?:number; comments?:Json; updated_at?:string }
+        Row: { id:string; attempt_id:string; grader_type:string; grader_user_id:string|null; rubric_version:string; scores:Json; total_score:number; comments:Json; metadata:Json; created_at:string; updated_at:string }
+        Insert: { id?:string; attempt_id:string; grader_type:string; grader_user_id?:string|null; rubric_version:string; scores:Json; total_score:number; comments?:Json; metadata?:Json; created_at?:string; updated_at?:string }
+        Update: { attempt_id?:string; grader_type?:string; grader_user_id?:string|null; rubric_version?:string; scores?:any; total_score?:number; comments?:Json; metadata?:Json; updated_at?:string }
+        Relationships: []
+      }
+      practice_settings: {
+        Row: { household_id:string; monthly_ai_cost_limit_usd:number|null; ai_grading_calibrated:boolean; updated_at:string }
+        Insert: { household_id:string; monthly_ai_cost_limit_usd?:number|null; ai_grading_calibrated?:boolean; updated_at?:string }
+        Update: { monthly_ai_cost_limit_usd?:number|null; ai_grading_calibrated?:boolean; updated_at?:string }
         Relationships: []
       }
     }
@@ -1176,6 +1182,7 @@ export type Database = {
       }
       add_attempt_feedback_comment: { Args: { p_feedback_id:string; p_body:string; p_disposition:string }; Returns: Database['public']['Tables']['attempt_feedback']['Row'] }
       correct_locked_question: { Args: { p_question_id:string; p_field:string; p_new_value:string; p_reason:string }; Returns:string }
+      practice_ai_monthly_spend: { Args: { p_household_id:string }; Returns:number }
       can_access_note: { Args: { p_note_id: string }; Returns: boolean }
       can_access_notebook: { Args: { p_notebook_id: string }; Returns: boolean }
       can_access_reading: { Args: { p_reading_item_id: string }; Returns: boolean }

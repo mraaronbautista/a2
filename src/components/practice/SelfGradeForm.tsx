@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import type { AnswerKey } from '../../lib/practiceTypes'
+import { AiGradePanel } from './AiGradePanel'
 
 const keys = ['directAnswer', 'legalBasis', 'application', 'conclusion', 'legalWriting'] as const
 
@@ -37,5 +38,6 @@ export function SelfGradeForm({ attemptId, userId, answer, answerKey, graderType
     </div>)}
     {error && <p className="text-sm text-red-600">{error}</p>}
     <button disabled={saving} className="rounded-xl bg-accent px-4 py-2 text-white">{saving ? 'Saving…' : 'Save grade'}</button>
+    {graderType === 'self' && <AiGradePanel attemptId={attemptId} />}
   </form>
 }
