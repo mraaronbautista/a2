@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { checkAiSpend } from '../_shared/aiSpend.ts'
 
 const jsonHeaders = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
-const HARD_MONTHLY_CEILING_USD = 5
 const PROMPT_VERSION = 'v1'
 const RUBRIC_VERSION = 'pilot-5pt-v1'
 
@@ -65,10 +65,8 @@ Deno.serve(async (req) => {
     if (attemptError || !attempt || !attempt.submitted_at) return response({error:'Only your submitted attempt can be graded.'},403)
     const { data: question, error: questionError } = await client.from('practice_questions').select('question_text,answer_key,updated_at').eq('id',attempt.question_id).single()
     if (questionError || !question) return response({error:'Question or reviewed key unavailable.'},404)
-    const { data: settings } = await client.from('practice_settings').select('*').eq('household_id',attempt.household_id).maybeSingle()
-    const { data: spent } = await client.rpc('practice_ai_monthly_spend',{p_household_id:attempt.household_id})
-    const preInputRate=provider==='openai'?.25:Number(Deno.env.get('ANTHROPIC_INPUT_USD_PER_MILLION')??1);const preOutputRate=provider==='openai'?2:Number(Deno.env.get('ANTHROPIC_OUTPUT_USD_PER_MILLION')??5);const estimatedMax=5000*preInputRate/1_000_000+1200*preOutputRate/1_000_000; const cap = Math.min(Number(settings?.monthly_ai_cost_limit_usd ?? HARD_MONTHLY_CEILING_USD), HARD_MONTHLY_CEILING_USD)
-    if (Number(spent??0)+estimatedMax>cap) return response({error:'The monthly AI grading limit would be exceeded. Use self or partner grading instead.'},402)
+    const preInputRate=provider==='openai'?.25:Number(Deno.env.get('ANTHROPIC_INPUT_USD_PER_MILLION')??1);const preOutputRate=provider==='openai'?2:Number(Deno.env.get('ANTHROPIC_OUTPUT_USD_PER_MILLION')??5);const estimatedMax=5000*preInputRate/1_000_000+1200*preOutputRate/1_000_000
+    const {settings}=await checkAiSpend(client,attempt.household_id,estimatedMax)
     const answer = getAnswer(attempt); const called = provider==='openai'?await callOpenAI(question.question_text,question.answer_key,answer):await callAnthropic(question.question_text,question.answer_key,answer)
     const grade = validateGrade(called.grade,answer,question.answer_key)
     const inputRate=provider==='openai'?.25:Number(Deno.env.get('ANTHROPIC_INPUT_USD_PER_MILLION')??1);const outputRate=provider==='openai'?2:Number(Deno.env.get('ANTHROPIC_OUTPUT_USD_PER_MILLION')??5);const estimatedCostUsd=called.inputTokens*inputRate/1_000_000+called.outputTokens*outputRate/1_000_000
