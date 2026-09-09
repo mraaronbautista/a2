@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { useHousehold } from '../hooks/useHousehold'
@@ -11,7 +11,6 @@ import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon } from '../components/layout/icons'
 import { LibraryWorkspace } from '../components/library/LibraryWorkspace'
-import { SchoolNav } from '../components/school/SchoolNav'
 
 const REALTIME_TABLES = ['notes', 'courses', 'reading_items']
 const SUBVIEW_ORDER = ['notes', 'courses'] as const
@@ -29,6 +28,7 @@ export function Notes() {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
   const { openSettings } = useSettings()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Courses got merged into this tab rather than kept as its own nav
@@ -112,9 +112,8 @@ export function Notes() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6">
-      <SchoolNav />
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-navy">Law</h1>
+        <h1 className="text-2xl font-semibold text-navy">Law School</h1>
         <div className="flex items-center gap-2">
           <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
             <SettingsIcon className="h-5 w-5" />
@@ -137,6 +136,7 @@ export function Notes() {
             {label}
           </button>
         ))}
+        <button onClick={() => navigate('/practice')} className="rounded-full px-3 py-1 font-medium text-ink-muted">Practice</button>
       </div>
 
       <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd} className="min-h-[60dvh] space-y-4">
