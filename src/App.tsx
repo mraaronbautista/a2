@@ -7,7 +7,6 @@ import { CourseDetail } from './routes/CourseDetail'
 import { Notes } from './routes/Notes'
 import { NoteDetail } from './routes/NoteDetail'
 import { ReadingDetail } from './routes/ReadingDetail'
-import { Budget } from './routes/Budget'
 import { Us } from './routes/Us'
 import { NotebookDetail } from './routes/NotebookDetail'
 import { Practice } from './routes/Practice'
@@ -40,7 +39,7 @@ function App() {
         <Route path="/notebooks/:notebookId" element={<NotebookDetail />} />
         <Route path="/practice" element={<Practice />} />
         <Route path="/practice/:questionId" element={<PracticeQuestion />} />
-        <Route path="/budget" element={<Budget />} />
+        <Route path="/budget" element={<Navigate to="/us?view=budget" replace />} />
         <Route path="/us" element={<Us />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

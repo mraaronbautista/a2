@@ -11,7 +11,7 @@ import { usePomodoroVisibility } from '../../hooks/usePomodoroVisibility'
 import { usePomodoroActivated } from '../../hooks/usePomodoroActivated'
 import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
-import { TimelineIcon, SchoolIcon, BudgetIcon, UsIcon } from './icons'
+import { TimelineIcon, SchoolIcon, UsIcon } from './icons'
 import { PomodoroTimer } from '../study/PomodoroTimer'
 import { FocusLayoutProvider } from '../../hooks/FocusLayoutProvider'
 import { useFocusLayout } from '../../hooks/useFocusLayout'
@@ -19,7 +19,6 @@ import { useFocusLayout } from '../../hooks/useFocusLayout'
 const NAV_ITEMS = [
   { to: '/', label: 'Timeline', Icon: TimelineIcon },
   { to: '/notes', label: 'School', Icon: SchoolIcon, activePrefixes: ['/notes', '/courses', '/readings', '/notebooks', '/practice'] },
-  { to: '/budget', label: 'Budget', Icon: BudgetIcon },
   { to: '/us', label: 'Us', Icon: UsIcon },
 ]
 

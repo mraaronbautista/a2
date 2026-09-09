@@ -22,7 +22,7 @@ const SUBVIEWS = ['overview', 'accounts'] as const
 type SubView = (typeof SUBVIEWS)[number]
 const SWIPE_MIN_DISTANCE = 60
 
-export function Budget() {
+export function Budget({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth()
   const { householdId, loading: householdLoading } = useHousehold()
   const profiles = useProfiles()
@@ -100,13 +100,27 @@ export function Budget() {
   // transferring/paying down a debt has its own visible button there
   // instead, since it needs at least two existing accounts to make sense.
   useQuickAdd(
-    subView === 'overview'
+    embedded ? null : subView === 'overview'
       ? () => {
           setEntryPrefill(undefined)
           setEntry('new')
         }
       : () => setAccountModal('new'),
   )
+
+  useEffect(() => {
+    if (!embedded) return
+    function handleEmbeddedQuickAdd() {
+      if (subView === 'overview') {
+        setEntryPrefill(undefined)
+        setEntry('new')
+      } else {
+        setAccountModal('new')
+      }
+    }
+    window.addEventListener('a2:budget-quick-add', handleEmbeddedQuickAdd)
+    return () => window.removeEventListener('a2:budget-quick-add', handleEmbeddedQuickAdd)
+  }, [embedded, subView])
 
   if (householdLoading || loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
@@ -117,7 +131,7 @@ export function Budget() {
   const activeAccounts = accounts.filter((a) => !a.archived)
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
+    <div className={embedded ? 'space-y-4' : 'mx-auto max-w-2xl space-y-4 p-6'}>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Budget</h1>
         <div className="flex items-center gap-1">
@@ -129,9 +143,9 @@ export function Budget() {
           >
             {hideBalances ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
           </button>
-          <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
+          {!embedded && <button onClick={openSettings} aria-label="Settings" className="rounded-full p-1.5 text-ink-muted hover:text-ink md:hidden">
             <SettingsIcon className="h-5 w-5" />
-          </button>
+          </button>}
         </div>
       </div>
 

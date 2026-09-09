@@ -15,9 +15,10 @@ import { LibraryWorkspace } from '../components/library/LibraryWorkspace'
 import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon, ChevronDownIcon } from '../components/layout/icons'
+import { Budget } from './Budget'
 
 const REALTIME_TABLES = ['thoughts', 'goals', 'notes']
-const SUBVIEW_ORDER = ['goals', 'thoughts', 'notes'] as const
+const SUBVIEW_ORDER = ['notes', 'goals', 'thoughts', 'budget'] as const
 type SubView = (typeof SUBVIEW_ORDER)[number]
 const SWIPE_MIN_DISTANCE = 60
 
@@ -50,7 +51,8 @@ export function Us() {
   const { openSettings } = useSettings()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const initialView = searchParams.get('view') === 'notes' ? 'notes' : 'goals'
+  const requestedView = searchParams.get('view')
+  const initialView: SubView = SUBVIEW_ORDER.includes(requestedView as SubView) ? requestedView as SubView : 'notes'
   const [subView, setSubView] = useState<SubView>(initialView)
   const [thoughts, setThoughts] = useState<Thought[]>([])
   const [addedToToday, setAddedToToday] = useState<Set<string>>(new Set())
@@ -78,7 +80,7 @@ export function Us() {
 
   function selectSubView(view: SubView) {
     setSubView(view)
-    setSearchParams(view === 'notes' ? { view } : {}, { replace: true })
+    setSearchParams(view === 'notes' ? {} : { view }, { replace: true })
   }
 
   useEffect(() => {
@@ -175,7 +177,9 @@ export function Us() {
   // on Notes; Thoughts has no separate "add" modal (the composer's always
   // visible), so it just focuses that instead.
   useQuickAdd(
-    subView === 'goals'
+    subView === 'budget'
+      ? () => window.dispatchEvent(new Event('a2:budget-quick-add'))
+      : subView === 'goals'
       ? () => setGoalModal('new')
       : subView === 'notes'
         ? () => setAddNoteOpen(true)
@@ -216,9 +220,10 @@ export function Us() {
       <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
         {(
           [
+            ['notes', 'Notes'],
             ['goals', 'Goals'],
             ['thoughts', 'Thoughts'],
-            ['notes', 'Notes'],
+            ['budget', 'Budget'],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -354,6 +359,7 @@ export function Us() {
         )}
 
         {subView === 'notes' && user && householdId && <LibraryWorkspace householdId={householdId} userId={user.id} space="personal" onNewNote={() => setAddNoteOpen(true)} />}
+        {subView === 'budget' && <Budget embedded />}
       </div>
 
       {addNoteOpen && householdId && user && (
