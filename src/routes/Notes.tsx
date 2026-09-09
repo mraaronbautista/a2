@@ -11,6 +11,7 @@ import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon } from '../components/layout/icons'
 import { LibraryWorkspace } from '../components/library/LibraryWorkspace'
+import { SchoolNav, type SchoolSection } from '../components/school/SchoolNav'
 
 const REALTIME_TABLES = ['notes', 'courses', 'reading_items']
 const SUBVIEW_ORDER = ['notes', 'courses'] as const
@@ -121,23 +122,7 @@ export function Notes() {
         </div>
       </div>
 
-      <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
-        {(
-          [
-            ['notes', 'Notes'],
-            ['courses', 'Courses'],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            onClick={() => selectSubView(value)}
-            className={['rounded-full px-3 py-1 font-medium', subView === value ? 'bg-accent-bg text-accent' : 'text-ink-muted'].join(' ')}
-          >
-            {label}
-          </button>
-        ))}
-        <button onClick={() => navigate('/practice')} className="rounded-full px-3 py-1 font-medium text-ink-muted">Practice</button>
-      </div>
+      <SchoolNav active={subView} onSelect={(section: SchoolSection) => section === 'practice' ? navigate('/practice') : selectSubView(section)} />
 
       <div onTouchStart={handleSubViewSwipeStart} onTouchEnd={handleSubViewSwipeEnd} className="min-h-[60dvh] space-y-4">
         {subView === 'notes' && householdId && user && <LibraryWorkspace householdId={householdId} userId={user.id} space="law" courses={courses} onNewNote={() => setAddNoteOpen(true)} />}

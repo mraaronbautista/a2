@@ -19,8 +19,9 @@ export function Practice() {
 
   if (loading) return <div className="p-6 text-sm text-ink-muted">Loading…</div>
   return <main className="mx-auto max-w-4xl space-y-6 p-5 md:p-8">
-    <SchoolNav />
-    <div><p className="text-sm text-ink-muted">A2's practice format</p><h1 className="text-3xl font-semibold text-navy">Practice</h1><p className="mt-1 text-sm text-ink-muted">Real questions, deliberate answers, evidence-based review—with optional AI grading when you request it.</p></div>
+    <h1 className="text-2xl font-semibold text-navy">Law School</h1>
+    <SchoolNav active="practice" />
+    <div><p className="text-sm text-ink-muted">A2's practice format</p><h2 className="text-3xl font-semibold text-navy">Practice</h2><p className="mt-1 text-sm text-ink-muted">Real questions, deliberate answers, evidence-based review—with optional AI grading when you request it.</p></div>
     <div role="tablist" className="flex gap-1 overflow-x-auto rounded-full bg-surface p-1">{([['start', 'Start practice'], ['bank', 'Question bank'], ['progress', 'Progress'], ['together', 'You & partner']] as const).map(([id, label]) => <button role="tab" aria-selected={tab === id} onClick={() => setTab(id)} key={id} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm ${tab === id ? 'bg-accent-bg text-accent' : 'text-ink-muted'}`}>{label}</button>)}</div>
     {error && <p className="text-sm text-red-600">{error}</p>}
     {tab === 'start' && <section className="space-y-3"><h2 className="text-lg font-semibold">Ready to answer</h2>{reviewed.length ? <ReadyQuestions questions={reviewed} /> : <div className="rounded-2xl border border-dashed border-border p-8 text-center"><p>No reviewed questions are ready yet.</p><button onClick={() => setTab('bank')} className="mt-2 text-sm text-accent">Open the question bank</button></div>}</section>}
