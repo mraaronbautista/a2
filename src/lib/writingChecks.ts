@@ -4,6 +4,8 @@ export function checkWriting(text:string):PracticeFinding[]{
  if(trimmed&&!/[.!?]$/.test(trimmed)) out.push({category:'missing_terminal_punctuation',span:{start:Math.max(0,text.length-1),end:text.length},message:'Add terminal punctuation.',severity:'info'})
  for(const m of text.matchAll(/\b(\w+)\s+\1\b/gi)) out.push({category:'repeated_word',span:{start:m.index!,end:m.index!+m[0].length},message:`Repeated word: ${m[1]}.`,severity:'warning'})
  for(const m of text.matchAll(/\b(I think|maybe|probably|perhaps)\b/gi)) out.push({category:'tentative_phrasing',span:{start:m.index!,end:m.index!+m[0].length},message:'Consider a more direct legal statement.',severity:'info'})
+ for(const m of text.matchAll(/(?:^|[.!?]\s+)([a-z])/g)){const start=m.index!+m[0].length-1;out.push({category:'sentence_capitalization',span:{start,end:start+1},message:`Capitalize “${m[1]}” at the start of this sentence.`,severity:'warning'})}
+ for(const m of text.matchAll(/\bi\b/g)) out.push({category:'lowercase_i',span:{start:m.index!,end:m.index!+1},message:'Capitalize the pronoun “I.”',severity:'warning'})
  let offset=0; for(const s of text.split(/(?<=[.!?])/)){const words=s.trim().split(/\s+/);if(words.length>45&&!/[;,]/.test(s))out.push({category:'run_on',span:{start:offset,end:offset+s.length},message:'This long sentence may be easier to read if divided.',severity:'info'});offset+=s.length}
  return out
 }

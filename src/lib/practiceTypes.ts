@@ -4,7 +4,7 @@ export type PracticeMode='learn_alac'|'practice'
 export type SourceTier='supreme_court'|'professor_supplied'|'institutional_suggested'
 export type VariationType='change_material_fact'|'change_immaterial_fact'|'reverse_result'|'add_exception'|'remove_necessary_fact'|'combine_doctrines'|'convert_format'
 export interface FactChange { field:string; previousValue:string; newValue:string; legalEffect:string }
-export type FindingCategory='run_on'|'missing_terminal_punctuation'|'tentative_phrasing'|'repeated_word'|'inconsistent_naming'|'missing_direct_answer'|'missing_legal_basis'|'inconsistent_conclusion'
+export type FindingCategory='run_on'|'missing_terminal_punctuation'|'tentative_phrasing'|'repeated_word'|'sentence_capitalization'|'lowercase_i'|'inconsistent_naming'|'missing_direct_answer'|'missing_legal_basis'|'inconsistent_conclusion'
 export interface TextSpan { [key:string]:Json|undefined; start:number; end:number }
 export interface PracticeFinding { [key:string]:Json|undefined; category:FindingCategory; span:TextSpan; message:string; severity:'info'|'warning' }
 export interface RubricComponent { [key:string]:Json|undefined; maxPoints:number; evidenceRequirement:string }

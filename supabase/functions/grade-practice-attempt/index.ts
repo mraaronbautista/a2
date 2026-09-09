@@ -2,43 +2,36 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { checkAiSpend } from '../_shared/aiSpend.ts'
 
 const jsonHeaders = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
-const PROMPT_VERSION = 'v1'
-const RUBRIC_VERSION = 'pilot-5pt-v1'
+const PROMPT_VERSION = 'quick-fire-v2'
+const RUBRIC_VERSION = 'sc-holistic-5pt-v1'
 
-type Score = { points: number; evidenceSpan: { start: number; end: number } | null; citedAuthorities: string[] }
-type Grade = { scores: Record<string, Score>; totalScore: number; confidence: number; uncertainties: string[] }
+type Grade = { totalScore: number; strengths: string[]; improvements: string[]; grammarTips: string[]; capitalizationTips: string[]; confidence: number; uncertainties: string[] }
 
 const schema = {
-  type: 'object', additionalProperties: false, required: ['scores', 'totalScore', 'confidence', 'uncertainties'],
+  type: 'object', additionalProperties: false, required: ['totalScore', 'strengths', 'improvements', 'grammarTips', 'capitalizationTips', 'confidence', 'uncertainties'],
   properties: {
-    scores: { type: 'object', additionalProperties: false, required: ['directAnswer','legalBasis','application','conclusion','legalWriting'], properties: Object.fromEntries(['directAnswer','legalBasis','application','conclusion','legalWriting'].map((key) => [key, { type:'object', additionalProperties:false, required:['points','evidenceSpan','citedAuthorities'], properties:{ points:{type:'number'}, evidenceSpan:{anyOf:[{type:'object',additionalProperties:false,required:['start','end'],properties:{start:{type:'integer'},end:{type:'integer'}}},{type:'null'}]}, citedAuthorities:{type:'array',items:{type:'string'}} } }])) },
-    totalScore: { type: 'number' }, confidence: { type: 'number' }, uncertainties: { type: 'array', items: { type: 'string' } },
+    totalScore: { type: 'number', minimum: 0, maximum: 5 },
+    strengths: { type: 'array', items: { type: 'string' } },
+    improvements: { type: 'array', items: { type: 'string' } },
+    grammarTips: { type: 'array', items: { type: 'string' } },
+    capitalizationTips: { type: 'array', items: { type: 'string' } },
+    confidence: { type: 'number' }, uncertainties: { type: 'array', items: { type: 'string' } },
   },
 }
 
 function response(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: jsonHeaders }) }
 function getAnswer(attempt: Record<string, unknown>) { return attempt.mode === 'practice' ? String(attempt.answer_freeform ?? '') : [attempt.answer_direct,attempt.answer_legal_basis,attempt.answer_application,attempt.answer_conclusion].filter(Boolean).join('\n\n') }
 function validateGrade(raw: Grade, answer: string, answerKey: Record<string, any>) {
-  const names = ['directAnswer','legalBasis','application','conclusion','legalWriting']
-  const uncertainties = [...(raw.uncertainties ?? [])]
-  let sum = 0
-  const approved = new Set((answerKey.legalBasis?.authorities ?? []).map((x:string) => x.toLowerCase()))
-  for (const name of names) {
-    const score = raw.scores?.[name]; const max = Number(answerKey.rubric?.[name]?.maxPoints ?? 0)
-    if (!score || score.points < 0 || score.points > max) throw new Error(`Invalid ${name} score`)
-    if (score.points > 0 && (!score.evidenceSpan || score.evidenceSpan.start < 0 || score.evidenceSpan.end <= score.evidenceSpan.start || score.evidenceSpan.end > answer.length)) throw new Error(`Invalid ${name} evidence span`)
-    for (const citation of score.citedAuthorities ?? []) if (!approved.has(citation.toLowerCase())) uncertainties.push(`Unmatched authority: ${citation}`)
-    sum += score.points
-  }
-  if (Math.abs(sum - raw.totalScore) > .001) throw new Error('Component scores do not equal total')
+  if (!answer.trim() || raw.totalScore < 0 || raw.totalScore > 5 || Math.round(raw.totalScore * 2) !== raw.totalScore * 2) throw new Error('Invalid holistic score')
   if (raw.confidence < 0 || raw.confidence > 1) throw new Error('Invalid confidence')
-  return { ...raw, uncertainties: [...new Set(uncertainties)] }
+  if (!answerKey?.directAnswer || !answerKey?.legalBasis?.explanation) throw new Error('A complete reviewed answer key is required')
+  return { ...raw, uncertainties: [...new Set(raw.uncertainties ?? [])] }
 }
 
 async function callOpenAI(question: string, answerKey: unknown, answer: string) {
   const key = Deno.env.get('OPENAI_API_KEY')!
   const model = Deno.env.get('OPENAI_GRADING_MODEL') || 'gpt-5-mini'
-  const result = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'}, body:JSON.stringify({ model, input:[{role:'system',content:'Grade only against the supplied human-reviewed A2 rubric. Do not add legal rules. Evidence spans are zero-based character offsets into STUDENT ANSWER.'},{role:'user',content:`QUESTION\n${question}\n\nANSWER KEY\n${JSON.stringify(answerKey)}\n\nSTUDENT ANSWER\n${answer}`}], text:{format:{type:'json_schema',name:'practice_grade',strict:true,schema}} }) })
+  const result = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'}, body:JSON.stringify({ model, input:[{role:'system',content:'Grade only against the supplied human-reviewed answer key; do not invent or add legal rules. Give one holistic Philippine Bar-style score from 0 to 5 in 0.5 increments. Evaluate the direct answer, correct legal basis, application to facts, conclusion, clarity, grammar, and capitalization. Return short, specific, actionable feedback.'},{role:'user',content:`QUESTION\n${question}\n\nREVIEWED ANSWER KEY\n${JSON.stringify(answerKey)}\n\nSTUDENT ANSWER\n${answer}`}], text:{format:{type:'json_schema',name:'quick_fire_grade',strict:true,schema}} }) })
   if (!result.ok) throw new Error(`OpenAI request failed (${result.status})`)
   const data = await result.json(); const output = data.output_text ?? data.output?.flatMap((x:any)=>x.content??[]).find((x:any)=>x.type==='output_text')?.text
   if (!output) throw new Error('Provider returned no grade')
@@ -47,7 +40,7 @@ async function callOpenAI(question: string, answerKey: unknown, answer: string) 
 
 async function callAnthropic(question: string, answerKey: unknown, answer: string) {
   const key=Deno.env.get('ANTHROPIC_API_KEY')!; const model=Deno.env.get('ANTHROPIC_GRADING_MODEL')!
-  const result=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json'},body:JSON.stringify({model,max_tokens:1600,system:'Grade only against the supplied human-reviewed A2 rubric. Evidence spans are zero-based offsets into STUDENT ANSWER.',messages:[{role:'user',content:`QUESTION\n${question}\n\nANSWER KEY\n${JSON.stringify(answerKey)}\n\nSTUDENT ANSWER\n${answer}`}],tools:[{name:'submit_grade',description:'Submit the rubric grade.',input_schema:schema}],tool_choice:{type:'tool',name:'submit_grade'}})})
+  const result=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json'},body:JSON.stringify({model,max_tokens:1600,system:'Grade only against the supplied human-reviewed answer key. Give one holistic 0 to 5 score in 0.5 increments and concise legal-answer, grammar, and capitalization feedback. Do not invent legal rules.',messages:[{role:'user',content:`QUESTION\n${question}\n\nREVIEWED ANSWER KEY\n${JSON.stringify(answerKey)}\n\nSTUDENT ANSWER\n${answer}`}],tools:[{name:'submit_grade',description:'Submit the holistic grade and improvement tips.',input_schema:schema}],tool_choice:{type:'tool',name:'submit_grade'}})})
   if(!result.ok)throw new Error(`Anthropic request failed (${result.status})`);const data=await result.json();const grade=data.content?.find((item:any)=>item.type==='tool_use'&&item.name==='submit_grade')?.input;if(!grade)throw new Error('Provider returned no grade')
   return{grade:grade as Grade,model,inputTokens:Number(data.usage?.input_tokens??0),outputTokens:Number(data.usage?.output_tokens??0)}
 }
@@ -70,8 +63,8 @@ Deno.serve(async (req) => {
     const answer = getAnswer(attempt); const called = provider==='openai'?await callOpenAI(question.question_text,question.answer_key,answer):await callAnthropic(question.question_text,question.answer_key,answer)
     const grade = validateGrade(called.grade,answer,question.answer_key)
     const inputRate=provider==='openai'?.25:Number(Deno.env.get('ANTHROPIC_INPUT_USD_PER_MILLION')??1);const outputRate=provider==='openai'?2:Number(Deno.env.get('ANTHROPIC_OUTPUT_USD_PER_MILLION')??5);const estimatedCostUsd=called.inputTokens*inputRate/1_000_000+called.outputTokens*outputRate/1_000_000
-    const metadata={provider,model:called.model,promptVersion:PROMPT_VERSION,rubricVersion:RUBRIC_VERSION,answerKeyVersion:question.updated_at,inputTokens:called.inputTokens,outputTokens:called.outputTokens,estimatedCostUsd,confidence:grade.confidence,uncertainties:grade.uncertainties}
-    const { data: feedback, error: insertError } = await client.from('attempt_feedback').insert({attempt_id:attempt.id,grader_type:'ai',grader_user_id:null,rubric_version:RUBRIC_VERSION,scores:grade.scores,total_score:grade.totalScore,metadata}).select('*').single()
+    const metadata={provider,model:called.model,promptVersion:PROMPT_VERSION,rubricVersion:RUBRIC_VERSION,answerKeyVersion:question.updated_at,inputTokens:called.inputTokens,outputTokens:called.outputTokens,estimatedCostUsd,confidence:grade.confidence,uncertainties:grade.uncertainties,strengths:grade.strengths,improvements:grade.improvements,grammarTips:grade.grammarTips,capitalizationTips:grade.capitalizationTips}
+    const { data: feedback, error: insertError } = await client.from('attempt_feedback').insert({attempt_id:attempt.id,grader_type:'ai',grader_user_id:null,rubric_version:RUBRIC_VERSION,scores:{holistic:{points:grade.totalScore}},total_score:grade.totalScore,metadata}).select('*').single()
     if (insertError) throw insertError
     return response({feedback,calibrated:settings?.ai_grading_calibrated??false})
   } catch (error) { return response({error:error instanceof Error?error.message:'Could not get an AI grade right now — your answer and other feedback are unaffected.'},500) }
