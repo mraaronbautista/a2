@@ -22,7 +22,7 @@ type NoteType = 'freeform' | 'case_brief' | 'paginated' | 'canvas'
 export function AddNoteModal({ householdId, userId, space, courses, onClose }: AddNoteModalProps) {
   const navigate = useNavigate()
   const [title, setTitle] = useState('')
-  const [type, setType] = useState<NoteType>('freeform')
+  const [type, setType] = useState<NoteType>(space === 'law' ? 'paginated' : 'freeform')
   const [courseId, setCourseId] = useState('')
   const [paper, setPaper] = useState<PaperSize>(DEFAULT_PAGE_SETTINGS.paper)
   const [orientation, setOrientation] = useState<Orientation>(DEFAULT_PAGE_SETTINGS.orientation)
@@ -34,12 +34,12 @@ export function AddNoteModal({ householdId, userId, space, courses, onClose }: A
       ? [
           ['freeform', 'Freeform'],
           ['case_brief', 'Case brief'],
-          ['paginated', 'Paginated document'],
+          ['paginated', 'Document'],
           ['canvas', 'Canvas notebook'],
         ]
       : [
           ['freeform', 'Freeform'],
-          ['paginated', 'Paginated document'],
+          ['paginated', 'Document'],
         ]
 
   async function handleSubmit(e: FormEvent) {

@@ -65,6 +65,7 @@ export function NoteDetail() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [converting, setConverting] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [saveError, setSaveError] = useState('')
 
@@ -277,6 +278,24 @@ export function NoteDetail() {
     navigate(note.space === 'personal' ? '/us?view=notes' : '/notes')
   }
 
+  async function handleConvertToDocument() {
+    if (!note || note.type !== 'freeform' || !canManage || converting) return
+    if (dirty && !(await handleSave())) return
+    setConverting(true)
+    setSaveError('')
+    const { error } = await supabase
+      .from('notes')
+      .update({ type: 'paginated', page_settings: DEFAULT_PAGE_SETTINGS })
+      .eq('id', note.id)
+    setConverting(false)
+    if (error) {
+      setSaveError(error.message || 'Could not convert this note to a document.')
+      return
+    }
+    setPageSettings(DEFAULT_PAGE_SETTINGS)
+    setNote((previous) => previous ? { ...previous, type: 'paginated', page_settings: DEFAULT_PAGE_SETTINGS } : previous)
+  }
+
   if (loading) {
     return <div className="p-6 text-sm text-ink-muted">Loading…</div>
   }
@@ -462,6 +481,13 @@ export function NoteDetail() {
       ) : (
         user && <RichTextEditor content={content} editable={canManage} userId={user.id} onChange={markDirty(setContent)} />
       )}
+
+      {canManage && note.type === 'freeform' && (
+        <button type="button" onClick={handleConvertToDocument} disabled={converting} className="rounded-lg border border-accent px-4 py-2 text-sm font-medium text-accent disabled:opacity-50">
+          {converting ? 'Converting…' : 'Convert to document'}
+        </button>
+      )}
+      {saveError && <p role="alert" className="text-sm text-accent">{saveError}</p>}
 
       {canManage && (
         <button onClick={handleDelete} className="text-sm text-accent">
