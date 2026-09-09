@@ -32,6 +32,16 @@ export function PracticeIcon({ className }: IconProps) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className??BASE}><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h5M8 16l1.5 1.5L12 15"/></svg>
 }
 
+export function SchoolIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className ?? BASE}>
+      <path d="M12 3v18M7 21h10M5 6h14" />
+      <path d="m5 6-3 7h6L5 6Zm14 0-3 7h6l-3-7Z" />
+      <path d="M2 13c.4 2 1.4 3 3 3s2.6-1 3-3M16 13c.4 2 1.4 3 3 3s2.6-1 3-3" />
+    </svg>
+  )
+}
+
 // A wallet with a coin slot circle — reads as "money" distinct from
 // Shopping/Notes glyphs elsewhere in the app.
 export function BudgetIcon({ className }: IconProps) {

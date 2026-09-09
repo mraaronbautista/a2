@@ -11,6 +11,7 @@ import { useSettings } from '../hooks/useSettings'
 import { useQuickAdd } from '../hooks/useQuickAdd'
 import { SettingsIcon } from '../components/layout/icons'
 import { LibraryWorkspace } from '../components/library/LibraryWorkspace'
+import { SchoolNav } from '../components/school/SchoolNav'
 
 const REALTIME_TABLES = ['notes', 'courses', 'reading_items']
 const SUBVIEW_ORDER = ['notes', 'courses'] as const
@@ -111,6 +112,7 @@ export function Notes() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-6">
+      <SchoolNav />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-navy">Law</h1>
         <div className="flex items-center gap-2">

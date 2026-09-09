@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../hooks/useAuth'
 import { useHousehold } from '../../hooks/useHousehold'
@@ -11,15 +11,14 @@ import { usePomodoroVisibility } from '../../hooks/usePomodoroVisibility'
 import { usePomodoroActivated } from '../../hooks/usePomodoroActivated'
 import { SettingsMenu } from './SettingsMenu'
 import { QuickAddModal } from '../agenda/QuickAddModal'
-import { NotesIcon, TimelineIcon, PracticeIcon, BudgetIcon, UsIcon } from './icons'
+import { TimelineIcon, SchoolIcon, BudgetIcon, UsIcon } from './icons'
 import { PomodoroTimer } from '../study/PomodoroTimer'
 import { FocusLayoutProvider } from '../../hooks/FocusLayoutProvider'
 import { useFocusLayout } from '../../hooks/useFocusLayout'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Timeline', Icon: TimelineIcon },
-  { to: '/notes', label: 'Law', Icon: NotesIcon },
-  { to: '/practice', label: 'Practice', Icon: PracticeIcon },
+  { to: '/notes', label: 'School', Icon: SchoolIcon, activePrefixes: ['/notes', '/courses', '/readings', '/notebooks', '/practice'] },
   { to: '/budget', label: 'Budget', Icon: BudgetIcon },
   { to: '/us', label: 'Us', Icon: UsIcon },
 ]
@@ -39,6 +38,7 @@ function navLinkClass(isActive: boolean) {
 
 function AppShellContent() {
   const { theme, toggleTheme } = useTheme()
+  const location = useLocation()
   const { user } = useAuth()
   const { householdId } = useHousehold()
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -105,7 +105,7 @@ function AppShellContent() {
                   key={item.to}
                   to={item.to}
                   end={item.to === '/'}
-                  className={({ isActive }) => ['flex items-center gap-2.5', navLinkClass(isActive)].join(' ')}
+                  className={({ isActive }) => ['flex items-center gap-2.5', navLinkClass(isActive || item.activePrefixes?.some((prefix) => location.pathname.startsWith(prefix)) === true)].join(' ')}
                 >
                   <item.Icon />
                   {item.label}
@@ -132,7 +132,7 @@ function AppShellContent() {
                   to={item.to}
                   end={item.to === '/'}
                   className={({ isActive }) =>
-                    ['flex flex-col items-center gap-0.5 rounded-full px-4 py-2 text-[11px] font-medium', navLinkClass(isActive)].join(' ')
+                    ['flex flex-col items-center gap-0.5 rounded-full px-4 py-2 text-[11px] font-medium', navLinkClass(isActive || item.activePrefixes?.some((prefix) => location.pathname.startsWith(prefix)) === true)].join(' ')
                   }
                 >
                   <item.Icon />
